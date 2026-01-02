@@ -73,9 +73,16 @@
             <scope>provided</scope>
         </dependency>
 
+
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.oms</groupId>
+            <artifactId>event-contracts</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
 

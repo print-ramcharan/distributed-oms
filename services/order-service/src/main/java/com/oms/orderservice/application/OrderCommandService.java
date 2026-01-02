@@ -1,7 +1,6 @@
 package com.oms.orderservice.application;
 
-
-import com.oms.orderservice.domain.event.OrderCreatedEvent;
+import com.oms.events.OrderCreatedEvent;
 import com.oms.orderservice.domain.event.OrderEventPublisher;
 import com.oms.orderservice.domain.model.Order;
 import com.oms.orderservice.domain.model.OrderItem;
@@ -23,7 +22,7 @@ public class OrderCommandService {
     public Order createOrder(List<OrderItem> items){
         Order order = Order.create(items);
         orderRepository.save(order);
-        orderEventPublisher.publish(new OrderCreatedEvent(order.getId()));
+        orderEventPublisher.publish(new OrderCreatedEvent(order.getId(), order.getTotalAmount()));
         return order;
     }
 }

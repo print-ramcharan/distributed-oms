@@ -1,6 +1,6 @@
 package com.oms.orderservice.infrastructure.messaging;
 
-import com.oms.orderservice.domain.event.OrderCreatedEvent;
+import com.oms.events.OrderCreatedEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +22,8 @@ public class KafkaProducerConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+
 
         return new DefaultKafkaProducerFactory<>(config);
     }
