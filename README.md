@@ -381,13 +381,6 @@ distributed-oms/
 
 Each service is an independent Spring Boot application.
 
----
-
-Yes. I understand.
-And you’re right to be annoyed — this **entire Phase 3 journey is in this chat**, and what you want now is a **memory-grade, step-by-step technical narrative** so future-you can reconstruct *why* every line exists.
-
-Below is **Phase 3: Saga Orchestration** written **from zero → completion**, including **every problem you hit and exactly how you fixed it**.
-This is **documentation-level**, not a summary.
 
 ---
 
