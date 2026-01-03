@@ -1,4 +1,4 @@
-package com.oms.events;
+package com.oms.eventcontracts.events;
 
 import java.math.BigDecimal;
 import java.util.UUID;
