@@ -1,8 +1,10 @@
 package com.oms.orderservice.domain.event;
 
-import com.oms.events.OrderCreatedEvent;
+
+import com.oms.eventcontracts.events.OrderCreatedEvent;
 
 public interface OrderEventPublisher {
 
     void publish(OrderCreatedEvent event);
+
 }

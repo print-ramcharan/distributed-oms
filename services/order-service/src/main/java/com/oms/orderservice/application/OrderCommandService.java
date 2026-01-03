@@ -1,6 +1,6 @@
 package com.oms.orderservice.application;
 
-import com.oms.events.OrderCreatedEvent;
+import com.oms.eventcontracts.events.OrderCreatedEvent;
 import com.oms.orderservice.domain.event.OrderEventPublisher;
 import com.oms.orderservice.domain.model.Order;
 import com.oms.orderservice.domain.model.OrderItem;

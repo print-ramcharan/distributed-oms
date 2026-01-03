@@ -1,6 +1,6 @@
 package com.oms.orderservice.infrastructure.messaging;
 
-import com.oms.events.OrderCreatedEvent;
+import com.oms.eventcontracts.events.OrderCreatedEvent;
 import com.oms.orderservice.domain.event.OrderEventPublisher;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -13,7 +13,8 @@ public class LoggingOrderEventPublisher implements OrderEventPublisher {
     private static final Logger log = LoggerFactory.getLogger(LoggingOrderEventPublisher.class);
 
     @Override
-    public void publish(OrderCreatedEvent event){
+    public void publish(OrderCreatedEvent event) {
         log.info("Publishing OrderCreatedEvent: orderId={}", event.getOrderId());
+
     }
 }

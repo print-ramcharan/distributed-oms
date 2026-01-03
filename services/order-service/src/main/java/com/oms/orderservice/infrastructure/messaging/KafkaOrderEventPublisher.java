@@ -1,6 +1,7 @@
 package com.oms.orderservice.infrastructure.messaging;
 
-import com.oms.events.OrderCreatedEvent;
+import com.oms.eventcontracts.events.OrderCreatedEvent;
+import com.oms.eventcontracts.events.OrderCreatedEvent;
 import com.oms.orderservice.domain.event.OrderEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -21,4 +22,6 @@ public class KafkaOrderEventPublisher implements OrderEventPublisher {
     public void publish(OrderCreatedEvent event) {
         kafkaTemplate.send(TOPIC, event.getOrderId().toString(), event);
     }
+
+
 }
