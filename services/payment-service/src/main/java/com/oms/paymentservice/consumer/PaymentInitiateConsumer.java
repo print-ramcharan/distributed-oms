@@ -19,6 +19,8 @@ public class PaymentInitiateConsumer {
         System.out.println("Consumer OrderCreatedEvent" + command);
         paymentService.createPendingPayment(command.getOrderId(), command.getAmount());
 
+        paymentService.completePayment(command.getOrderId());
+
         System.out.println("Payment created for orderId: " + command.getOrderId());
     }
 }
