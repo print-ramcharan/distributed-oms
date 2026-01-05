@@ -25,25 +25,13 @@ public class PaymentCompletedListener {
             groupId = "saga-orchestrator",
             containerFactory = "paymentCompletedKafkaListenerContainerFactory"
     )
-
-
-    @KafkaListener(
-            topics = "payment.completed",
-            groupId = "saga-orchestrator",
-            containerFactory = "paymentCompletedKafkaListenerContainerFactory"
-    )
     @Transactional
     public void handle(PaymentCompletedEvent event) {
 
         OrderSaga saga = sagaRepository.findById(event.getOrderId()).orElse(null);
+        if (saga == null) return;
 
-        if (saga == null) {
-            return;
-        }
-
-        if (saga.getState() != SagaState.PAYMENT_INITIATED) {
-            return;
-        }
+        if (saga.getState() != SagaState.PAYMENT_REQUESTED) return;
 
         saga.markPaymentCompleted();
         sagaRepository.save(saga);
@@ -62,5 +50,4 @@ public class PaymentCompletedListener {
                 inventoryCommand
         );
     }
-
 }

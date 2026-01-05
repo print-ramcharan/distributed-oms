@@ -17,7 +17,7 @@ public class PaymentFailedListener {
     public void handle(PaymentFailedEvent event){
         OrderSaga saga = sagaRepository.findById(event.getOrderId()).orElseThrow(() -> new IllegalStateException("Saga not found"));
 
-        if(saga.getState() != SagaState.PAYMENT_INITIATED){
+        if(saga.getState() != SagaState.PAYMENT_REQUESTED){
             return;
         }
 

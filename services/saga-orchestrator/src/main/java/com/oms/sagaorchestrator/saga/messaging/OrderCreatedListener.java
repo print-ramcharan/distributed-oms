@@ -33,7 +33,7 @@ public class OrderCreatedListener {
         kafkaTemplate.send("payment.initiate", event.getAmount().toString(), command);
 
 
-        saga.markPaymentInitiated();
+        saga.markPaymentRequested();
         sagaRepository.save(saga);
     }
 }
