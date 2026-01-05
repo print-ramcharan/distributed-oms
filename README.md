@@ -956,7 +956,434 @@ Nothing critical is missing for Phase 4.
 
 ---
 
-When you’re ready, next phase is **Phase 5: performance & scale** — but only when *you* say so.
+Absolutely.
+Below is a **clean, complete, documentation-grade version of Phase 4**, rewritten for **long-term reference, interviews, and project docs**.
+Nothing is removed. Nothing is assumed. Nothing is missing.
+
+You can paste this directly into a `PHASE_4_RELIABILITY.md`.
+
+---
+
+# Phase 4.5 — Reliability & Failure Isolation
+
+**Transactional Outbox · Retry Control · DLQ · Kafka Fault Tolerance**
+
+---
+
+## 1. Phase 4 Objective
+
+After Phase 3, the system could orchestrate distributed workflows using events, but it was **not safe under real-world failures**.
+
+Phase 4 existed to ensure the system:
+
+* Does **not lose events** when Kafka is unavailable
+* Does **not crash** or block core business flows
+* Does **not enter retry storms**
+* Can **restart safely** without duplication
+* Can **isolate poison events**
+* Remains **eventually consistent** under all conditions
+
+This phase is about **operational correctness**, not new features.
+
+---
+
+## 2. System State Before Phase 4
+
+### Event publishing model
+
+* Order Service:
+
+    * Persisted order
+    * Published `OrderCreatedEvent` directly to Kafka
+
+### Problems with this approach
+
+* If Kafka was down:
+
+    * Order succeeded
+    * Event was **lost permanently**
+* If Kafka publish failed:
+
+    * Database transaction had already committed
+* No retries
+* No DLQ
+* No audit trail
+* No restart safety
+
+This violated core backend guarantees:
+
+* Atomicity
+* Reliability
+* Recoverability
+
+---
+
+## 3. Step 1 — Transactional Outbox Pattern
+
+### Why it was needed
+
+To guarantee:
+
+> **If the database transaction commits, the event is never lost.**
+
+Kafka availability must not affect business correctness.
+
+---
+
+### What was introduced
+
+A durable `outbox_events` table:
+
+```sql
+outbox_events (
+  id UUID PRIMARY KEY,
+  aggregate_id UUID NOT NULL,
+  aggregate_type VARCHAR NOT NULL,
+  event_type VARCHAR NOT NULL,
+  payload JSONB NOT NULL,
+  status VARCHAR NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  retry_count INTEGER NOT NULL,
+  next_retry_at TIMESTAMP
+)
+```
+
+---
+
+### Core principle
+
+* Order data and outbox row are written **in the same DB transaction**
+* Kafka is **never called inside the request thread**
+* Event publication becomes **asynchronous and recoverable**
+
+---
+
+### Result
+
+* Orders are **independent of Kafka**
+* Events are **durable**
+* System becomes restart-safe
+
+---
+
+## 4. Step 2 — Outbox Relay (Asynchronous Publisher)
+
+### What was built
+
+A scheduled relay:
+
+```java
+@Scheduled(fixedDelay = 500)
+@Transactional
+public void publishPendingEvents()
+```
+
+---
+
+### Responsibilities
+
+* Poll pending outbox rows
+* Deserialize payload
+* Publish event to Kafka
+* Update outbox state
+
+---
+
+### Query used
+
+```sql
+SELECT *
+FROM outbox_events
+WHERE status = 'NEW'
+AND retry_count < 3
+AND (next_retry_at IS NULL OR next_retry_at <= now())
+ORDER BY created_at
+LIMIT 50
+FOR UPDATE SKIP LOCKED
+```
+
+---
+
+### Why this query matters
+
+* `FOR UPDATE SKIP LOCKED`
+
+    * Prevents duplicate publishing
+    * Enables safe parallelism
+* Ordering ensures fairness
+* Restart-safe by design
+
+---
+
+## 5. First Major Failure — Kafka Caused Infinite Retries
+
+### What happened
+
+When Kafka was down:
+
+* Scheduler ran every 500 ms
+* Same event retried continuously
+* Logs exploded
+* CPU wasted
+* System entered a **retry storm**
+
+---
+
+### Why this was dangerous
+
+* Kafka outages are normal in production
+* Infinite retries self-DOS the service
+* Reliability systems must **degrade gracefully**
+
+---
+
+## 6. Step 3 — Retry Control & Explicit State
+
+### Insight
+
+Not all failures should be treated the same.
+
+---
+
+### Outbox lifecycle
+
+* `NEW` → eligible for publishing
+* `SENT` → published successfully
+* `FAILED` → permanently dead
+
+Retries must be **bounded**.
+
+---
+
+## 7. Step 4 — Failure Classification (Key Design Decision)
+
+Failures were split into two categories.
+
+---
+
+### 7.1 Transient Failures (Retryable)
+
+Examples:
+
+* Kafka broker down
+* Network timeout
+* Topic temporarily unavailable
+
+**Behavior:**
+
+* Increment `retry_count`
+* Schedule `next_retry_at`
+* Keep status as `NEW`
+* Retry later
+
+---
+
+### 7.2 Poison / Permanent Failures
+
+Examples:
+
+* JSON deserialization failure
+* Corrupt payload
+* Domain invariant violation
+
+**Behavior:**
+
+* Send event to DLQ
+* Mark event as `FAILED`
+* Never retry again
+
+---
+
+### Why this matters
+
+> Retry storms only happen when poison events are retried forever.
+
+Classification is the **core reliability control**.
+
+---
+
+## 8. Step 5 — Dead Letter Queue (DLQ)
+
+### Why DLQ exists
+
+Poison events:
+
+* Will never succeed
+* Must not block the pipeline
+* Must be manually inspected
+
+---
+
+### DLQ payload contents
+
+Each DLQ message contains:
+
+* Source service
+* Original topic
+* Event type
+* Aggregate ID
+* Full payload
+* Exception message
+* Timestamp
+
+---
+
+### DLQ rules
+
+* Only poison events go to DLQ
+* Infra failures never do
+* Prevents DLQ spam
+
+---
+
+## 9. Step 6 — Kafka Down Scenario (Intentional Test)
+
+### Test performed
+
+* Order Service running
+* Kafka container stopped
+* Orders created
+
+---
+
+### Observed behavior
+
+* Orders saved successfully
+* Outbox rows created
+* Relay attempted publishing
+* Kafka timed out
+* Events remained `NEW`
+* No crashes
+* No data loss
+
+This validated:
+
+* Outbox correctness
+* Failure isolation
+* Business continuity
+
+---
+
+## 10. Step 7 — Service Restart Safety
+
+### Scenario tested
+
+* Kafka down
+* Pending outbox events exist
+* Order Service restarted
+
+---
+
+### Result
+
+* Relay resumed polling
+* Same events retried
+* No duplication
+* No corruption
+
+Validated:
+
+* Row locking
+* Idempotent publishing
+* Restart safety
+
+---
+
+## 11. Issues Encountered & Fixes
+
+### Issue 1 — “Topic not present in metadata”
+
+**Cause:** Kafka intentionally down
+**Fix:** Classified as transient failure
+**Result:** No state corruption
+
+---
+
+### Issue 2 — Infinite retries
+
+**Cause:** No retry boundary
+**Fix:** Retry count + DLQ transition
+
+---
+
+### Issue 3 — “Why is it still running?”
+
+**Cause:** Misunderstanding scheduler behavior
+**Clarification:**
+
+> Schedulers never stop.
+> Work stops when no rows match.
+
+---
+
+### Issue 4 — Tight coupling of relay and Kafka
+
+**Fix:**
+
+* Relay handles orchestration
+* Publisher only talks to Kafka
+
+---
+
+## 12. Final System Behavior
+
+### Kafka DOWN
+
+* Orders succeed
+* Events stored
+* No retry storm
+* No crashes
+* No data loss
+
+### Kafka UP
+
+* Relay resumes
+* Pending events published
+* Status becomes `SENT`
+
+### Poison event
+
+* Sent to DLQ
+* Marked `FAILED`
+* Pipeline continues
+
+### Service restart
+
+* Safe recovery
+* No duplication
+* No missed events
+
+---
+
+## 13. What Phase 4 Achieved
+
+> **The system is now failure-tolerant, restart-safe, and production-grade.**
+
+---
+
+## 14. Interview-Grade Engineering Demonstrated
+
+* Transactional Outbox pattern
+* Failure classification
+* DLQ isolation
+* Retry storm prevention
+* Idempotent publishing
+* Operational resilience
+
+This is **real backend engineering**, not CRUD.
+
+---
+
+## 15. Phase 4 Status
+
+✅ **COMPLETE**
+
+No remaining reliability work.
+
+**Next Phase:**
+**Phase 5 — Performance & Throughput**
+
+---
 
 ## Roadmap
 
@@ -970,4 +1397,4 @@ When you’re ready, next phase is **Phase 5: performance & scale** — but only
 ## Status
 
 🚧 Actively evolving
-📌 Phase 1, Phase 2 & Phase 3 complete
+📌 Phase 1, Phase 2, Phase 3 & Phase 4 complete
