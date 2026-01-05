@@ -14,6 +14,9 @@ public enum SagaState {
     // Payment service reported failure
     PAYMENT_FAILED,
 
+    FAILED,
+    COMPENSATING,
+    COMPENSATED,
     // Order service confirmed order completion
     ORDER_COMPLETED,
 
