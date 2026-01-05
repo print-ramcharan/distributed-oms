@@ -29,6 +29,18 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+  order-db:
+    image: postgres:15
+    container_name: order-db
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: orderuser
+      POSTGRES_PASSWORD: orderpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+
   payment-db:
     image: postgres:15
     container_name: payment-db
@@ -54,5 +66,6 @@ services:
       - saga_db_data:/var/lib/postgresql/data
 
 volumes:
+  order_db_data:
   payment_db_data:
   saga_db_data:
