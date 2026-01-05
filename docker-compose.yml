@@ -65,7 +65,21 @@ services:
     volumes:
       - saga_db_data:/var/lib/postgresql/data
 
+  inventory-db:
+    image: postgres:15
+    container_name: inventory-db
+    environment:
+      POSTGRES_DB: inventorydb
+      POSTGRES_USER: inventoryuser
+      POSTGRES_PASSWORD: inventorypass
+    ports:
+      - "5436:5432"
+    volumes:
+      - inventory_db_data:/var/lib/postgresql/data
+
+
 volumes:
   order_db_data:
   payment_db_data:
   saga_db_data:
+  inventory_db_data:
