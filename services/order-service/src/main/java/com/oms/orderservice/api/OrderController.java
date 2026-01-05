@@ -34,7 +34,7 @@ public class OrderController {
     }
 
     private OrderItem toDomain(OrderItemRequest item){
-        return new OrderItem(item.getProductId(), item.getQuantity(), item.getPrice());
+        return OrderItem.create(item.getProductId(), item.getQuantity(), item.getPrice());
 
     }
     @GetMapping("/health")

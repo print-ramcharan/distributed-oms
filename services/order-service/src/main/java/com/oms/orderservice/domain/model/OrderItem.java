@@ -13,6 +13,7 @@ public class OrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "order_item_id")
     private UUID id;
 
     @Column(name = "product_id", nullable = false)
