@@ -13,16 +13,16 @@ import java.util.UUID;
 @Service
 public class OrderCommandService {
     private final OrderRepository orderRepository;
-    private final OrderEventPublisher orderEventPublisher;
+//    private final OrderEventPublisher orderEventPublisher;
 
     OrderCommandService(OrderRepository orderRepository, OrderEventPublisher orderEventPublisher){
         this.orderRepository = orderRepository;
-        this.orderEventPublisher = orderEventPublisher;
+//        this.orderEventPublisher = orderEventPublisher;
     }
     public Order createOrder(List<OrderItem> items){
         Order order = Order.create(items);
         orderRepository.save(order);
-        orderEventPublisher.publish(new OrderCreatedEvent(order.getId(), order.getTotalAmount()));
+//        orderEventPublisher.publish(new OrderCreatedEvent(order.getId(), order.getTotalAmount()));
         return order;
     }
 }
