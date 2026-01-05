@@ -33,36 +33,72 @@ public class OrderSaga {
         this.updatedAt = this.createdAt;
     }
 
-    /* ===================== STATE TRANSITIONS ===================== */
+    /* ===================== PAYMENT ===================== */
 
-    public void markPaymentInitiated() {
+    public void markPaymentRequested() {
         assertState(SagaState.STARTED);
-        this.state = SagaState.PAYMENT_INITIATED;
-        touch();
+        transitionTo(SagaState.PAYMENT_REQUESTED);
     }
 
     public void markPaymentCompleted() {
-        assertState(SagaState.PAYMENT_INITIATED);
-        this.state = SagaState.PAYMENT_COMPLETED;
-        touch();
+        assertState(SagaState.PAYMENT_REQUESTED);
+        transitionTo(SagaState.PAYMENT_COMPLETED);
     }
 
     public void markPaymentFailed() {
-        assertState(SagaState.PAYMENT_INITIATED);
-        this.state = SagaState.PAYMENT_FAILED;
-        touch();
+        assertState(SagaState.PAYMENT_REQUESTED);
+        transitionTo(SagaState.PAYMENT_FAILED);
     }
 
-    public void markOrderCompleted() {
+    /* ===================== INVENTORY ===================== */
+
+    public void markInventoryRequested() {
         assertState(SagaState.PAYMENT_COMPLETED);
-        this.state = SagaState.ORDER_COMPLETED;
-        touch();
+        transitionTo(SagaState.INVENTORY_REQUESTED);
     }
 
-    public void markOrderCancelled() {
-        assertState(SagaState.PAYMENT_FAILED);
-        this.state = SagaState.ORDER_CANCELLED;
-        touch();
+    public void markInventoryReserved() {
+        assertState(SagaState.INVENTORY_REQUESTED);
+        transitionTo(SagaState.INVENTORY_RESERVED);
+    }
+
+    public void markInventoryFailed() {
+        assertState(SagaState.INVENTORY_REQUESTED);
+        transitionTo(SagaState.INVENTORY_FAILED);
+    }
+
+    /* ===================== COMPENSATION ===================== */
+
+    public void markCompensating() {
+        if (state != SagaState.INVENTORY_FAILED &&
+                state != SagaState.PAYMENT_COMPLETED) {
+            throw new IllegalStateException(
+                    "Cannot compensate from state " + state
+            );
+        }
+        transitionTo(SagaState.COMPENSATING);
+    }
+
+    public void markCompensated() {
+        assertState(SagaState.COMPENSATING);
+        transitionTo(SagaState.COMPENSATED);
+    }
+
+    /* ===================== TERMINAL ===================== */
+
+    public void markCompleted() {
+        assertState(SagaState.INVENTORY_RESERVED);
+        transitionTo(SagaState.COMPLETED);
+    }
+
+    public void markFailed() {
+        if (state != SagaState.PAYMENT_FAILED &&
+                state != SagaState.COMPENSATED) {
+            throw new IllegalStateException(
+                    "Cannot fail saga from state " + state
+            );
+        }
+        transitionTo(SagaState.FAILED);
     }
 
     /* ===================== INTERNAL ===================== */
@@ -70,12 +106,14 @@ public class OrderSaga {
     private void assertState(SagaState expected) {
         if (this.state != expected) {
             throw new IllegalStateException(
-                    "Invalid saga transition from " + this.state + " expected " + expected
+                    "Invalid saga transition from " + this.state +
+                            ", expected " + expected
             );
         }
     }
 
-    private void touch() {
+    private void transitionTo(SagaState newState) {
+        this.state = newState;
         this.updatedAt = Instant.now();
     }
 }
