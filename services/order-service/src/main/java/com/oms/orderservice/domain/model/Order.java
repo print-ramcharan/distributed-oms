@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,14 +13,18 @@ import java.util.UUID;
 @Table(name = "orders")
 @Getter
 public class Order {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "order_id")
+    @Column(name = "order_id", updatable = false, nullable = false)
     private UUID id;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private List<OrderItem> items;
+    @OneToMany(
+            mappedBy = "order",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<OrderItem> items = new ArrayList<>();
 
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
@@ -31,25 +36,39 @@ public class Order {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected Order() {}
+    protected Order() {
+        // JPA only
+    }
 
-    public Order(List<OrderItem> items){
-        if(items == null || items.isEmpty()){
-            throw new IllegalArgumentException("Order must contain atleast one item");
+    /* ========= Factory ========= */
+
+    public static Order create(List<OrderItem> rawItems) {
+        if (rawItems == null || rawItems.isEmpty()) {
+            throw new IllegalArgumentException("Order must contain at least one item");
         }
 
-        this.items = items;
-        this.totalAmount = calculateTotal(items);
-        this.status = OrderStatus.PENDING;
-        this.createdAt = Instant.now();
+        Order order = new Order();
+        order.createdAt = Instant.now();
+        order.status = OrderStatus.PENDING;
+
+        for (OrderItem item : rawItems) {
+            order.addItem(item);
+        }
+
+        order.recalculateTotal();
+        return order;
     }
 
-    public static Order create(List<OrderItem> items) {
-        return new Order(items);
+    /* ========= Domain behavior ========= */
+
+    private void addItem(OrderItem item) {
+        item.attachTo(this);   // enforce invariant
+        this.items.add(item);
     }
 
-    private BigDecimal calculateTotal(List<OrderItem> items){
-        return items.stream().map(OrderItem::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+    private void recalculateTotal() {
+        this.totalAmount = items.stream()
+                .map(OrderItem::totalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-
 }

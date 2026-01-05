@@ -91,6 +91,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+        </dependency>
+
+
+        <dependency>
             <groupId>com.oms</groupId>
             <artifactId>event-contracts</artifactId>
             <version>1.0.0</version>
