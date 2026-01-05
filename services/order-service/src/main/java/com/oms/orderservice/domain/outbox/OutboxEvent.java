@@ -38,6 +38,12 @@ public class OutboxEvent {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount;
+
+    @Column(name = "next_retry_at")
+    private Instant nextRetryAt;
+
     protected OutboxEvent() {}
 
     private OutboxEvent(
@@ -52,6 +58,9 @@ public class OutboxEvent {
         this.payload = payload;
         this.status = OutboxStatus.NEW;
         this.createdAt = Instant.now();
+        this.retryCount = 0;
+        this.nextRetryAt = Instant.now();
+
     }
 
     public static OutboxEvent create(
@@ -70,4 +79,12 @@ public class OutboxEvent {
     public void markFailed() {
         this.status = OutboxStatus.FAILED;
     }
+    public void incrementRetry(){
+        this.retryCount ++;
+    }
+    public void scheduleNextRetry() {
+        this.nextRetryAt = Instant.now()
+                .plusSeconds(Math.min(60, retryCount * 5L));
+    }
+
 }

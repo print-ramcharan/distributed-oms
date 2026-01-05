@@ -12,6 +12,8 @@ public interface OutboxRepository extends JpaRepository<OutboxEvent, UUID> {
     SELECT *
     FROM outbox_events
     WHERE status = 'NEW'
+    AND retry_count < 3
+    AND (next_retry_at IS NULL OR next_retry_at <= now())
     ORDER BY created_at
     LIMIT :limit
     FOR UPDATE SKIP LOCKED
