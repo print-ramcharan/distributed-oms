@@ -7,6 +7,7 @@ import com.oms.inventoryservice.domain.model.Inventory;
 import com.oms.inventoryservice.domain.model.InventoryReservation;
 import com.oms.inventoryservice.domain.repository.InventoryRepository;
 import com.oms.inventoryservice.domain.repository.ReservationRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class ReserveStockUseCase {
     private final ReservationRepository reservationRepository;
     private final InventoryEventPublisher eventPublisher;
 
+    @Transactional
     public void execute(String orderId, String productId, int quantity) {
 
         // Idempotency

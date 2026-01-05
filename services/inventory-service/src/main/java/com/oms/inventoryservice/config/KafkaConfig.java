@@ -37,13 +37,17 @@ public class KafkaConfig {
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
+        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
 
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.oms.eventcontracts");
+        // 🔥 THIS IS THE FIX
+        config.put(JsonDeserializer.VALUE_DEFAULT_TYPE,
+                "com.oms.eventcontracts.events.PaymentCompletedEvent");
+
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.oms.eventcontracts.events");
         config.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         return new DefaultKafkaConsumerFactory<>(config);
     }

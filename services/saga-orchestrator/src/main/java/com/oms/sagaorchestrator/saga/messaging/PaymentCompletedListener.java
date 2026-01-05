@@ -8,6 +8,7 @@ import com.oms.sagaorchestrator.saga.repository.OrderSagaRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -24,26 +25,35 @@ public class PaymentCompletedListener {
             groupId = "saga-orchestrator",
             containerFactory = "paymentCompletedKafkaListenerContainerFactory"
     )
+
+
+    @KafkaListener(
+            topics = "payment.completed",
+            groupId = "saga-orchestrator",
+            containerFactory = "paymentCompletedKafkaListenerContainerFactory"
+    )
     @Transactional
     public void handle(PaymentCompletedEvent event) {
 
-        OrderSaga saga = sagaRepository.findById(event.getOrderId())
-                .orElseThrow(() -> new IllegalStateException("Saga not found"));
+        OrderSaga saga = sagaRepository.findById(event.getOrderId()).orElse(null);
+
+        if (saga == null) {
+            return;
+        }
 
         if (saga.getState() != SagaState.PAYMENT_INITIATED) {
             return;
         }
 
-        // 1️⃣ move saga forward
         saga.markPaymentCompleted();
         sagaRepository.save(saga);
 
-        // 2️⃣ COMMAND inventory (this is the key change)
         InventoryReserveRequestedEvent inventoryCommand =
                 new InventoryReserveRequestedEvent(
                         event.getOrderId().toString(),
                         "p1",
-                        1, Instant.now()
+                        1,
+                        Instant.now()
                 );
 
         kafkaTemplate.send(
@@ -52,4 +62,5 @@ public class PaymentCompletedListener {
                 inventoryCommand
         );
     }
+
 }
