@@ -34,4 +34,32 @@ public class Payment {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    public boolean isRefunded() {
+        return status == PaymentStatus.REFUNDED;
+    }
+    public void refund(BigDecimal refundAmount) {
+
+        if (status == PaymentStatus.REFUNDED) {
+            // Idempotent: Kafka redelivery safe
+            return;
+        }
+
+        if (status != PaymentStatus.COMPLETED) {
+            throw new IllegalStateException(
+                    "Cannot refund payment in status " + status
+            );
+        }
+
+        if (refundAmount.compareTo(amount) > 0) {
+            throw new IllegalArgumentException(
+                    "Refund amount cannot exceed paid amount"
+            );
+        }
+
+        // Full refund (for now)
+        this.status = PaymentStatus.REFUNDED;
+        this.updatedAt = Instant.now();
+    }
+
+
 }
