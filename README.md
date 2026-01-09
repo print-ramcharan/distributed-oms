@@ -26,7 +26,7 @@ The goal is to demonstrate:
 - ✅ **Phase 2 complete**
 - ✅ **Phase 3 complete**
 - ✅ **Phase 4 complete**
-- 🚧 **Phase 5 upcoming**
+-  **Phase 5 upcoming**
 
 ---
 
@@ -1384,6 +1384,284 @@ No remaining reliability work.
 **Phase 5 — Performance & Throughput**
 
 ---
+
+# 📕 Distributed OMS – Saga Orchestrator
+
+## **Full Engineering Post-Mortem (Jan 9, 2026)**
+
+**Engineer:** Polabathina Ramcharan Teja
+
+---
+
+# 🧠 1. Original Working State (Before Everything Broke)
+
+The system was originally:
+
+```
+OrderService → Saga → PaymentService
+                     ↓
+                 InventoryService
+```
+
+Flow was:
+
+1. `OrderService` publishes
+   `order.created`
+
+2. `Saga` consumes
+   `order.created`
+
+3. Saga sends
+   `payment.initiate`
+
+4. `PaymentService` sends
+   `payment.completed` or `payment.failed`
+
+5. Saga consumes `payment.completed`
+
+6. Saga sends something to Inventory
+
+This part **worked**.
+
+But it was **architecturally wrong**.
+
+---
+
+# ❌ 2. The Fundamental Design Bug
+
+Saga was doing this:
+
+```
+payment.completed → inventory
+```
+
+Inventory was listening to:
+
+```
+payment.completed
+```
+
+This is **illegal in Saga architecture**.
+
+Why?
+
+Because:
+
+* `payment.completed` is an **event**
+* Inventory must never react to another service’s **events**
+* Inventory must only react to **commands**
+
+Correct design:
+
+```
+Saga → inventory.reserve.command
+Inventory → inventory.reserved | inventory.unavailable
+Saga → order.completed | order.failed
+```
+
+But you had:
+
+```
+payment.completed → inventory
+```
+
+That tightly coupled Inventory to Payment
+and violated Saga orchestration.
+
+This was fixed by introducing:
+
+```
+InventoryReserveCommand
+```
+
+Saga now sends:
+
+```
+inventory.reserve.command
+```
+
+Inventory replies:
+
+```
+inventory.reserved
+inventory.unavailable
+```
+
+This was the **first major fix**.
+
+---
+
+# ⚠️ 3. After fixing Inventory Command → New Failure
+
+After this change:
+
+* Payment → Saga → Inventory was correct
+* Inventory was replying properly
+
+But orders still never completed.
+
+Why?
+
+Because **Saga was broken internally**.
+
+---
+
+# 💥 4. The Silent Killer: Broken Saga State Machine
+
+This is where the nightmare began.
+
+You had:
+
+```java
+saga.markInventoryReserved();
+```
+
+being called **before**:
+
+```java
+saga.markInventoryRequested();
+```
+
+So Saga state transitions were:
+
+```
+PAYMENT_COMPLETED → INVENTORY_RESERVED
+```
+
+instead of:
+
+```
+PAYMENT_COMPLETED → INVENTORY_REQUESTED → INVENTORY_RESERVED
+```
+
+Then Saga did:
+
+```java
+if (state != INVENTORY_REQUESTED) return;
+```
+
+So when Inventory replied:
+
+```
+inventory.reserved
+```
+
+Saga ignored it.
+
+That caused:
+
+* Saga never reached “COMPLETED”
+* Saga never published:
+
+    * `order.completed`
+    * `order.failed`
+
+But **no exception was thrown**.
+It just silently skipped the handler.
+
+This is the worst bug possible.
+
+---
+
+# 🧨 5. The Second Hidden Bug (Order Service Consumer)
+
+While fixing Saga for hours, another disaster was hiding.
+
+OrderService was consuming:
+
+```
+order.created
+```
+
+Instead of:
+
+```
+order.completed
+order.failed
+```
+
+So even if Saga had worked,
+OrderService was listening to the wrong thing.
+
+So OrderService was:
+
+* Never seeing completion
+* Never updating order status
+
+This made debugging impossible because **even correct events would be ignored**.
+
+---
+
+# 🧩 6. What Actually Took 12+ Hours
+
+You weren’t fighting Kafka.
+
+You were fighting:
+
+| Layer              | What was broken            |
+| ------------------ | -------------------------- |
+| Saga Design        | Event vs Command violation |
+| Saga State Machine | Invalid state transitions  |
+| Kafka Topics       | order.completed missing    |
+| Order Service      | Listening to wrong event   |
+| Kafka Offsets      | Old orders unreplayable    |
+| Logs               | Silent failures            |
+
+That’s why it felt impossible.
+
+---
+
+# ✅ 7. What Is Correct Now
+
+You now have:
+
+### Proper Saga choreography
+
+```
+OrderService → order.created
+Saga → payment.initiate
+Payment → payment.completed
+Saga → inventory.reserve.command
+Inventory → inventory.reserved
+Saga → order.completed
+OrderService → mark CONFIRMED
+```
+
+### Correct responsibilities
+
+| Service      | Role                       |
+| ------------ | -------------------------- |
+| OrderService | Emits order.created        |
+| Saga         | Orchestrates               |
+| Payment      | Executes payment           |
+| Inventory    | Executes stock reservation |
+| Kafka        | Event transport            |
+
+### Correct event types
+
+| Type     | Used for        |
+| -------- | --------------- |
+| Commands | Saga → services |
+| Events   | Services → Saga |
+
+---
+
+# 🏁 Final Truth
+
+This was not a Kafka issue.
+This was a **distributed state machine + orchestration bug**.
+
+You just debugged:
+
+* Incorrect Saga modeling
+* Broken state transitions
+* Wrong topic wiring
+* Wrong consumer wiring
+* Missing topics
+* Kafka offsets
+
+
+
 
 ## Roadmap
 
