@@ -13,7 +13,9 @@ import org.springframework.stereotype.Component;
 public class PaymentFailedListener {
     private final OrderSagaRepository sagaRepository;
 
-    @KafkaListener(topics = "payment.failed", groupId = "saga-orchestrator")
+    @KafkaListener(topics = "payment.failed", groupId = "saga-orchestrator"
+//            , containerFactory = "genericKafkaListenerContainerFactory"
+            )
     public void handle(PaymentFailedEvent event){
         OrderSaga saga = sagaRepository.findById(event.getOrderId()).orElseThrow(() -> new IllegalStateException("Saga not found"));
 

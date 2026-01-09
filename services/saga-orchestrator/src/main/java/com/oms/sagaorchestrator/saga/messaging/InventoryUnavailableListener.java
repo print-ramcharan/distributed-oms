@@ -1,5 +1,6 @@
 package com.oms.sagaorchestrator.saga.messaging;
 
+import com.oms.eventcontracts.commands.RefundPaymentCommand;
 import com.oms.eventcontracts.events.InventoryUnavailableEvent;
 import com.oms.eventcontracts.events.OrderCancelledEvent;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
@@ -9,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -29,37 +28,53 @@ public class InventoryUnavailableListener {
             topics = "${kafka.topics.inventory-unavailable}",
             groupId = "${kafka.consumer.group-id}",
             containerFactory = "kafkaListenerContainerFactory"
+//            containerFactory = "genericKafkaListenerContainerFactory"
     )
-    public void handle(
-            @Payload InventoryUnavailableEvent event,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.OFFSET) long offset
-    ) {
-        log.info(
-                "InventoryUnavailableEvent | orderId={} | reason={}",
-                event.getOrderId(), event.getReason()
-        );
+    public void handle(InventoryUnavailableEvent event, Acknowledgment ack) {
 
-        OrderSaga saga = sagaRepository.findById(UUID.fromString(event.getOrderId()))
-                .orElseThrow(() -> new IllegalStateException("Saga not found"));
+        UUID orderId = UUID.fromString(event.getOrderId());
 
+        log.info("InventoryUnavailable | orderId={} | reason={}",
+                orderId, event.getReason());
+
+        OrderSaga saga = sagaRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalStateException("Saga not found for " + orderId));
+
+        // Idempotency
         if (saga.getState() != SagaState.INVENTORY_REQUESTED) {
-            log.warn("Ignoring InventoryUnavailableEvent in state {}", saga.getState());
+            log.warn("Ignoring InventoryUnavailable for order {} in state {}",
+                    orderId, saga.getState());
+            ack.acknowledge();
             return;
         }
 
+        // 1️⃣ Move saga to compensating
         saga.markCompensating();
         sagaRepository.save(saga);
 
-        // Compensation path (future: payment refund)
+        // 2️⃣ Send refund command to Payment Service
+        kafkaTemplate.send(
+                "payment.refund.command",
+                orderId.toString(),
+                new RefundPaymentCommand(
+                        orderId,
+                        saga.getAmount(),
+                        event.getReason(),
+                        Instant.now()
+                )
+        );
+
+        // 3️⃣ Cancel the order
         kafkaTemplate.send(
                 "order.cancelled",
-                String.valueOf(saga.getOrderId()),
+                orderId.toString(),
                 new OrderCancelledEvent(
-                        saga.getOrderId(),
+                        orderId,
                         "Inventory unavailable",
                         Instant.now()
                 )
         );
+
+        ack.acknowledge();
     }
 }

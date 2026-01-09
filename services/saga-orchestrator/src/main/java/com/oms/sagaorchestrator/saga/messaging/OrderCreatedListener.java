@@ -2,6 +2,7 @@ package com.oms.sagaorchestrator.saga.messaging;
 
 import com.oms.eventcontracts.commands.InitiatePaymentCommand;
 import com.oms.eventcontracts.events.OrderCreatedEvent;
+import com.oms.eventcontracts.events.OrderItemDTO;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
 import com.oms.sagaorchestrator.saga.domain.SagaState;
 import com.oms.sagaorchestrator.saga.repository.OrderSagaRepository;
@@ -14,25 +15,48 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class OrderCreatedListener {
+
     private final OrderSagaRepository sagaRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "order.created", groupId = "saga-orchestrator")
+    @KafkaListener(topics = "order.created", groupId = "saga-orchestrator"
+//            containerFactory = "genericKafkaListenerContainerFactory"
+            )
     @Transactional
-    public void handle(OrderCreatedEvent event){
+    public void handle(OrderCreatedEvent event) {
 
         OrderSaga saga = sagaRepository.findById(event.getOrderId())
-                .orElseGet(() -> sagaRepository.save(new OrderSaga(event.getOrderId())));
+                .orElseGet(() -> {
+                    OrderSaga s = new OrderSaga(event.getOrderId(), event.getAmount());
 
-        if(saga.getState() != SagaState.STARTED){
+                    // 🔥 copy items from order event into saga
+                    for (OrderItemDTO item : event.getItems()) {
+                        s.addItem(
+                                item.getProductId(),
+                                item.getQuantity(),
+                                item.getPrice()
+                        );
+                    }
+
+                    return sagaRepository.save(s);
+                });
+
+        // Idempotency
+        if (saga.getState() != SagaState.STARTED) {
             return;
         }
 
-        InitiatePaymentCommand command = new InitiatePaymentCommand(event.getOrderId(), event.getAmount());
+        // 1️⃣ Send PAYMENT command
+        InitiatePaymentCommand command =
+                new InitiatePaymentCommand(event.getOrderId(), event.getAmount());
 
-        kafkaTemplate.send("payment.initiate", event.getAmount().toString(), command);
+        kafkaTemplate.send(
+                "payment.initiate",
+                event.getOrderId().toString(),
+                command
+        );
 
-
+        // 2️⃣ Move saga forward
         saga.markPaymentRequested();
         sagaRepository.save(saga);
     }

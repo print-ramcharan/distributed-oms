@@ -5,13 +5,11 @@ import com.oms.eventcontracts.events.OrderCompletedEvent;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
 import com.oms.sagaorchestrator.saga.domain.SagaState;
 import com.oms.sagaorchestrator.saga.repository.OrderSagaRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -28,35 +26,41 @@ public class InventoryReservedListener {
     @KafkaListener(
             topics = "${kafka.topics.inventory-reserved}",
             groupId = "${kafka.consumer.group-id}",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "inventoryReservedKafkaListenerContainerFactory"
     )
-    public void handle(
-            @Payload InventoryReservedEvent event,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.OFFSET) long offset
-    ) {
-        log.info(
-                "InventoryReservedEvent | orderId={} | topic={} | offset={}",
-                event.getOrderId(), topic, offset
-        );
+    @Transactional
+    public void handle(InventoryReservedEvent event) {
+        try {
+            UUID orderId = UUID.fromString(event.getOrderId());
+            log.info("Batch InventoryReservedEvent received | orderId={}", orderId);
 
-        OrderSaga saga = sagaRepository.findById(UUID.fromString(event.getOrderId()))
-                .orElseThrow(() -> new IllegalStateException("Saga not found"));
+            OrderSaga saga = sagaRepository.findById(orderId)
+                    .orElseThrow(() -> new IllegalStateException("Saga not found"));
 
-        if (saga.getState() != SagaState.INVENTORY_REQUESTED) {
-            log.warn("Ignoring InventoryReservedEvent in state {}", saga.getState());
-            return;
+            if (saga.getState() == SagaState.COMPLETED) {
+                return;
+            }
+            saga.markInventoryReserved();
+
+            // 1. Update State
+            saga.markCompleted();
+            sagaRepository.save(saga);
+
+            // 2. Create Event using the Record
+            OrderCompletedEvent finalEvent = new OrderCompletedEvent(
+                    orderId,
+                    Instant.now().toString()
+            );
+
+            // 3. Send (This will work now because Records are serializable by default)
+            log.info("Attempting to send OrderCompletedEvent...");
+            kafkaTemplate.send("order.completed", orderId.toString(), finalEvent);
+
+            log.info("✅ OrderCompletedEvent SENT | orderId={}", orderId);
+
+        } catch (Exception e) {
+            log.error("🔥 CRITICAL ERROR in InventoryReservedListener 🔥", e);
+            throw e; // Ensure rollback
         }
-
-        saga.markCompleted();
-        sagaRepository.save(saga);
-
-        // Final success signal
-        kafkaTemplate.send(
-                "order.completed",
-                String.valueOf(saga.getOrderId()),
-                new OrderCompletedEvent(saga.getOrderId(), Instant.now())
-        );
     }
 }
-

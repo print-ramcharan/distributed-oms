@@ -1,5 +1,6 @@
 package com.oms.sagaorchestrator.config;
 
+import com.oms.eventcontracts.events.InventoryReservedEvent;
 import com.oms.eventcontracts.events.OrderCreatedEvent;
 import com.oms.eventcontracts.events.PaymentCompletedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -127,6 +128,44 @@ public class KafkaConfig {
 
         return factory;
     }
+
+    @Bean
+    public ConsumerFactory<String, InventoryReservedEvent>
+    inventoryReservedConsumerFactory() {
+
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "saga-orchestrator");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
+        JsonDeserializer<InventoryReservedEvent> deserializer =
+                new JsonDeserializer<>(InventoryReservedEvent.class);
+
+        deserializer.addTrustedPackages("com.oms.eventcontracts");
+        deserializer.setUseTypeHeaders(false);
+
+        return new DefaultKafkaConsumerFactory<>(
+                props,
+                new StringDeserializer(),
+                deserializer
+        );
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, InventoryReservedEvent>
+    inventoryReservedKafkaListenerContainerFactory(
+            DefaultErrorHandler sagaErrorHandler
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, InventoryReservedEvent> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(inventoryReservedConsumerFactory());
+        factory.setCommonErrorHandler(sagaErrorHandler);
+        factory.getContainerProperties()
+                .setAckMode(ContainerProperties.AckMode.RECORD);
+        return factory;
+    }
+
 
 
 

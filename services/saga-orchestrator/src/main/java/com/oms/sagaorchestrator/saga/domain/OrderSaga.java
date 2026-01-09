@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -17,21 +20,34 @@ public class OrderSaga {
     @Column(nullable = false, updatable = false)
     private UUID orderId;
 
+    @OneToMany(mappedBy = "saga", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderSagaItem> items = new ArrayList<>();
+
+    private BigDecimal amount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SagaState state;
+
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     private Instant updatedAt;
 
-    public OrderSaga(UUID orderId) {
+    public OrderSaga(UUID orderId, BigDecimal amount) {
         this.orderId = orderId;
+        this.amount = amount;
         this.state = SagaState.STARTED;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
+
+    public void addItem(String productId, int quantity, BigDecimal price) {
+        OrderSagaItem item = new OrderSagaItem(productId, quantity, price, this);
+        this.items.add(item);
+    }
+
 
     /* ===================== PAYMENT ===================== */
 
@@ -116,4 +132,27 @@ public class OrderSaga {
         this.state = newState;
         this.updatedAt = Instant.now();
     }
+
+    public boolean allItemsReserved() {
+        return items != null &&
+                !items.isEmpty() &&
+                items.stream().allMatch(OrderSagaItem::isReserved);
+    }
+
+    public boolean isItemReserved(String productId) {
+        return items.stream()
+                .anyMatch(i ->
+                        i.getProductId().equals(productId) && i.isReserved()
+                );
+    }
+
+    public void markItemReserved(String productId) {
+        this.items.stream()
+                .filter(i -> i.getProductId().equals(productId))
+                .findFirst()
+                .ifPresent(OrderSagaItem::markReserved);
+    }
+
+
+
 }
