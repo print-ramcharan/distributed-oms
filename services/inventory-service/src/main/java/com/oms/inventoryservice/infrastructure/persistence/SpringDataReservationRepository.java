@@ -9,18 +9,16 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
 
 public interface SpringDataReservationRepository
-        extends JpaRepository<InventoryReservation, String> {
+        extends JpaRepository<InventoryReservation, UUID> {
 
-    Optional<InventoryReservation> findByOrderId(String orderId);
+    Optional<InventoryReservation> findByOrderIdAndProductId(UUID orderId, String productId);
 
-    @Query("""
-        SELECT r FROM InventoryReservation r
-        WHERE r.expiresAt < :now AND r.status = :status
-    """)
-    List<InventoryReservation> findExpiredReservations(
-            @Param("now") Instant now,
-            @Param("status") ReservationStatus status
+    List<InventoryReservation> findByExpiresAtBeforeAndStatus(
+            Instant now,
+            ReservationStatus status
     );
 }

@@ -8,18 +8,22 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "inventory_reservations")
+@Table(
+        name = "inventory_reservations",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"order_id", "product_id"})
+)
 @Getter
 @NoArgsConstructor
 public class InventoryReservation {
 
     @Id
-    private String id;
+    @GeneratedValue
+    private UUID id;
 
-    @Column(nullable = false, unique = true)
-    private String orderId;
+    @Column(name = "order_id", nullable = false)
+    private UUID orderId;
 
-    @Column(nullable = false)
+    @Column(name = "product_id", nullable = false)
     private String productId;
 
     @Column(nullable = false)
@@ -38,15 +42,14 @@ public class InventoryReservation {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    public InventoryReservation(String orderId, String productId, int quantity) {
-        this.id = UUID.randomUUID().toString();
+    public InventoryReservation(UUID orderId, String productId, int quantity) {
         this.orderId = orderId;
         this.productId = productId;
         this.quantity = quantity;
         this.status = ReservationStatus.RESERVED;
         this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.expiresAt = Instant.now().plusSeconds(900);
+        this.updatedAt = this.createdAt;
+        this.expiresAt = this.createdAt.plusSeconds(900);
     }
 
     public boolean isExpired() {
@@ -70,8 +73,6 @@ public class InventoryReservation {
     }
 
     public enum ReservationStatus {
-        RESERVED,
-        CONFIRMED,
-        RELEASED
+        RESERVED, CONFIRMED, RELEASED
     }
 }

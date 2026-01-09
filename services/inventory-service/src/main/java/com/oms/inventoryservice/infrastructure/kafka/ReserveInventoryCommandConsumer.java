@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -20,76 +23,48 @@ public class ReserveInventoryCommandConsumer {
     )
     public void handle(ReserveInventoryCommand command) {
 
-        log.info(
-                "ReserveInventoryCommand | orderId={} | productId={} | qty={}",
+        log.info("Batch ReserveInventoryCommand received | orderId={} | itemsCount={}",
                 command.getOrderId(),
-                command.getProductId(),
-                command.getQuantity()
-        );
+                command.getItems().size()); // 👈 Log the batch size
 
-        // 🔥 The use-case already handles:
-        // - Idempotency
-        // - Product not found
-        // - Insufficient stock
-        // - Publishing InventoryReserved / InventoryUnavailable events
-        // - NO exceptions for business failures
         reserveStockUseCase.execute(
-                command.getOrderId(),
-                command.getProductId(),
-                command.getQuantity()
+                UUID.fromString(command.getOrderId()),
+                command.getItems()
         );
     }
 }
 
-
-//package com.oms.inventoryservice.infrastructure.kafka;
-//
-//import com.oms.eventcontracts.events.InventoryReserveRequestedEvent;
-//import com.oms.eventcontracts.events.InventoryReservedEvent;
-//import com.oms.eventcontracts.events.InventoryUnavailableEvent;
-//import com.oms.inventoryservice.application.ReserveStockUseCase;
-//import lombok.RequiredArgsConstructor;
-//import lombok.extern.slf4j.Slf4j;
-//import org.springframework.kafka.annotation.KafkaListener;
-//import org.springframework.kafka.core.KafkaTemplate;
-//import org.springframework.kafka.support.KafkaHeaders;
-//import org.springframework.messaging.handler.annotation.Header;
-//import org.springframework.messaging.handler.annotation.Payload;
-//import org.springframework.stereotype.Component;
-//
-//import java.time.Instant;
-//
 //@Component
 //@RequiredArgsConstructor
 //@Slf4j
-//public class InventoryReserveRequestedConsumer {
+//public class ReserveInventoryCommandConsumer {
 //
 //    private final ReserveStockUseCase reserveStockUseCase;
 //
 //    @KafkaListener(
-//            topics = "${kafka.topics.inventory-reserve-requested}",
-//            groupId = "${kafka.consumer.group-id}",
-//            containerFactory = "kafkaListenerContainerFactory"
+//            topics = "inventory.reserve.command",
+//            groupId = "inventory-service"
 //    )
-//    public void handle(
-//            @Payload InventoryReserveRequestedEvent event,
-//            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-//            @Header(KafkaHeaders.OFFSET) long offset
-//    ) {
+//    public void handle(ReserveInventoryCommand command) {
+//
 //        log.info(
-//                "InventoryReserveRequestedEvent | orderId={} | productId={} | qty={} | topic={} | offset={}",
-//                event.getOrderId(),
-//                event.getProductId(),
-//                event.getQuantity(),
-//                topic,
-//                offset
+//                "ReserveInventoryCommand | orderId={} | productId={} | qty={}",
+//                command.getOrderId(),
+//                command.getProductId(),
+//                command.getQuantity()
 //        );
 //
-//        // 🚨 Never throw for business failures
+//        // 🔥 The use-case already handles:
+//        // - Idempotency
+//        // - Product not found
+//        // - Insufficient stock
+//        // - Publishing InventoryReserved / InventoryUnavailable events
+//        // - NO exceptions for business failures
 //        reserveStockUseCase.execute(
-//                event.getOrderId(),
-//                event.getProductId(),
-//                event.getQuantity()
+//                command.getOrderId(),
+//                command.getProductId(),
+//                command.getQuantity()
 //        );
 //    }
 //}
+
