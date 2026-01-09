@@ -1,25 +1,37 @@
 package com.oms.orderservice.infrastructure.messaging;
 
+import com.oms.eventcontracts.events.InventoryReservedEvent;
+import com.oms.eventcontracts.events.OrderCompletedEvent;
+import com.oms.eventcontracts.events.OrderCreatedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.ConsumerAwareRebalanceListener;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.backoff.FixedBackOff;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+@EnableKafka
 @Configuration
 public class KafkaConfig {
 
@@ -35,6 +47,13 @@ public class KafkaConfig {
        PRODUCER CONFIG
     ========================= */
 
+    @Bean
+    public DefaultErrorHandler sagaErrorHandler(
+            DeadLetterPublishingRecoverer recoverer
+    ) {
+        FixedBackOff backOff = new FixedBackOff(2000L, 3); // 3 retries
+        return new DefaultErrorHandler(recoverer, backOff);
+    }
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
         log.info("📦 Kafka Producer connecting to {}", bootstrapServers);
@@ -66,59 +85,172 @@ public class KafkaConfig {
        CONSUMER CONFIG
     ========================= */
 
-    @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
-        log.info("📥 Kafka Consumer connecting to {}", bootstrapServers);
-        log.info("👥 Kafka Consumer Group = {}", consumerGroupId);
-
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
-
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-
-        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
-
-        return new DefaultKafkaConsumerFactory<>(props);
-    }
+//    @Bean
+//    public ConsumerFactory<String, Object> consumerFactory() {
+//        log.info("📥 Kafka Consumer connecting to {}", bootstrapServers);
+//        log.info("👥 Kafka Consumer Group = {}", consumerGroupId);
+//
+//        Map<String, Object> props = new HashMap<>();
+//        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+//        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+//
+//        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+//        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+//        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
+//
+//        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+//        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+//
+//        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+//        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+//
+//        return new DefaultKafkaConsumerFactory<>(props);
+//    }
 
     /* =========================
        LISTENER FACTORY
     ========================= */
 
+//    @Bean
+//    public ConsumerFactory<String, OrderCompletedEvent>
+//    OrderCompletedConsumerFactory() {
+//
+//        Map<String, Object> props = new HashMap<>();
+//        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+//        props.put(ConsumerConfig.GROUP_ID_CONFIG, "order-service");
+//        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+//        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+//
+//        JsonDeserializer<OrderCompletedEvent> deserializer =
+//                new JsonDeserializer<>(OrderCompletedEvent.class);
+//
+//        deserializer.addTrustedPackages("com.oms.eventcontracts");
+//        deserializer.setUseTypeHeaders(false);
+//
+//        return new DefaultKafkaConsumerFactory<>(
+//                props,
+//                new StringDeserializer(),
+//                deserializer
+//        );
+//    }
+
+//    @Bean
+//    public ConcurrentKafkaListenerContainerFactory<String, OrderCompletedEvent>
+//    OrderCompletedKafkaListenerContainerFactory(
+//            DefaultErrorHandler sagaErrorHandler
+//    ) {
+//        ConcurrentKafkaListenerContainerFactory<String, OrderCompletedEvent> factory =
+//                new ConcurrentKafkaListenerContainerFactory<>();
+//        factory.setConsumerFactory(OrderCompletedConsumerFactory());
+//        factory.setCommonErrorHandler(sagaErrorHandler);
+//        factory.getContainerProperties()
+//                .setAckMode(ContainerProperties.AckMode.RECORD);
+//        return factory;
+//    }
+//    @Bean
+//    public ConcurrentKafkaListenerContainerFactory<String, Object>
+//    kafkaListenerContainerFactory() {
+//
+//        log.info("🎧 KafkaListenerContainerFactory created");
+//
+//        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+//                new ConcurrentKafkaListenerContainerFactory<>();
+//
+//        factory.setConsumerFactory(consumerFactory());
+//
+//        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+//
+//        // 🔥 This logs partition assignment — proves consumer is live
+//        factory.getContainerProperties().setConsumerRebalanceListener(
+//                new ConsumerAwareRebalanceListener() {
+//                    @Override
+//                    public void onPartitionsAssigned(
+//                            org.apache.kafka.clients.consumer.Consumer<?, ?> consumer,
+//                            java.util.Collection<org.apache.kafka.common.TopicPartition> partitions
+//                    ) {
+//                        log.info("✅ Kafka consumer assigned partitions: {}", partitions);
+//                    }
+//                }
+//        );
+//
+//        return factory;
+//    }
+
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object>
-    kafkaListenerContainerFactory() {
-
-        log.info("🎧 KafkaListenerContainerFactory created");
-
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+    public ConcurrentKafkaListenerContainerFactory<String, OrderCompletedEvent>
+    orderCompletedKafkaListenerContainerFactory(
+            DefaultErrorHandler sagaErrorHandler
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, OrderCompletedEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
 
-        factory.setConsumerFactory(consumerFactory());
+        // Create a specific consumer factory for OrderCompletedEvent
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        // Define the deserializer EXPLICITLY for this event type
+        JsonDeserializer<OrderCompletedEvent> deserializer = new JsonDeserializer<>(OrderCompletedEvent.class);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeHeaders(false); // Important since producer disabled headers
+
+        DefaultKafkaConsumerFactory<String, OrderCompletedEvent> consumerFactory =
+                new DefaultKafkaConsumerFactory<>(
+                        props,
+                        new StringDeserializer(),
+                        deserializer
+                );
+
+        factory.setConsumerFactory(consumerFactory);
+        factory.setCommonErrorHandler(sagaErrorHandler);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
-
-        // 🔥 This logs partition assignment — proves consumer is live
-        factory.getContainerProperties().setConsumerRebalanceListener(
-                new ConsumerAwareRebalanceListener() {
-                    @Override
-                    public void onPartitionsAssigned(
-                            org.apache.kafka.clients.consumer.Consumer<?, ?> consumer,
-                            java.util.Collection<org.apache.kafka.common.TopicPartition> partitions
-                    ) {
-                        log.info("✅ Kafka consumer assigned partitions: {}", partitions);
-                    }
-                }
-        );
 
         return factory;
     }
+    @Bean
+    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(
+            KafkaTemplate<String, Object> kafkaTemplate
+    ) {
+        DeadLetterPublishingRecoverer recoverer =
+                new DeadLetterPublishingRecoverer(
+                        kafkaTemplate,
+                        (record, ex) -> new TopicPartition(
+                                "saga.events.dlq",
+                                record.partition()
+                        )
+
+                );
+
+        recoverer.setHeadersFunction((record, ex) -> {
+            Headers headers = new RecordHeaders();
+
+            headers.add(
+                    "dlq-exception-class",
+                    ex.getClass().getName().getBytes(StandardCharsets.UTF_8)
+            );
+            headers.add(
+                    "dlq-exception-message",
+                    String.valueOf(ex.getMessage()).getBytes(StandardCharsets.UTF_8)
+            );
+            headers.add(
+                    "dlq-original-topic",
+                    record.topic().getBytes(StandardCharsets.UTF_8)
+            );
+            headers.add(
+                    "dlq-original-partition",
+                    String.valueOf(record.partition()).getBytes(StandardCharsets.UTF_8)
+            );
+            headers.add(
+                    "dlq-original-offset",
+                    String.valueOf(record.offset()).getBytes(StandardCharsets.UTF_8)
+            );
+
+            return headers;
+        });
+
+        return recoverer;
+    }
+
 }

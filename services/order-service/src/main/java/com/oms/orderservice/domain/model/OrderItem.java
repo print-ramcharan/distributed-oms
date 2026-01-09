@@ -1,12 +1,14 @@
 package com.oms.orderservice.domain.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
 @Table(name = "order_items")
+@Getter
 public class OrderItem {
 
     @Id
