@@ -5,51 +5,27 @@ import java.time.Instant;
 public class InventoryUnavailableEvent {
 
     private String orderId;
-    private String productId;
-    private int requestedQuantity;
-    private String reason;
+    private String reason; // e.g. "INSUFFICIENT_STOCK: P1001"
     private Instant timestamp;
 
-    // Required no-arg constructor
+    // 1. Default Constructor (Required for Jackson)
     public InventoryUnavailableEvent() {
     }
 
-    public InventoryUnavailableEvent(
-            String orderId,
-            String productId,
-            int requestedQuantity,
-            String reason,
-            Instant timestamp
-    ) {
+    // 2. Constructor for UseCase
+    public InventoryUnavailableEvent(String orderId, String reason, Instant timestamp) {
         this.orderId = orderId;
-        this.productId = productId;
-        this.requestedQuantity = requestedQuantity;
         this.reason = reason;
         this.timestamp = timestamp;
     }
 
+    // 3. Getters & Setters
     public String getOrderId() {
         return orderId;
     }
 
     public void setOrderId(String orderId) {
         this.orderId = orderId;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
-
-    public int getRequestedQuantity() {
-        return requestedQuantity;
-    }
-
-    public void setRequestedQuantity(int requestedQuantity) {
-        this.requestedQuantity = requestedQuantity;
     }
 
     public String getReason() {

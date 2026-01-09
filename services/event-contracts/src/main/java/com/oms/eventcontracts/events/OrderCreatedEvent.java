@@ -1,35 +1,34 @@
 package com.oms.eventcontracts.events;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public class OrderCreatedEvent {
 
     private UUID orderId;
     private BigDecimal amount;
+    private List<OrderItemDTO> items;
 
-    // Required by Jackson
+    // Jackson
     public OrderCreatedEvent() {
     }
 
-    public OrderCreatedEvent(UUID orderId, BigDecimal amount) {
+    public OrderCreatedEvent(UUID orderId, BigDecimal amount, List<OrderItemDTO> items) {
         this.orderId = orderId;
         this.amount = amount;
+        this.items = items;
     }
 
     public UUID getOrderId() {
         return orderId;
     }
 
-    public void setOrderId(UUID orderId) {
-        this.orderId = orderId;
-    }
-
     public BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public List<OrderItemDTO> getItems() {
+        return items;
     }
 }

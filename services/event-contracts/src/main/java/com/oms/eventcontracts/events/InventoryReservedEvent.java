@@ -5,48 +5,25 @@ import java.time.Instant;
 public class InventoryReservedEvent {
 
     private String orderId;
-    private String productId;
-    private int quantity;
     private Instant timestamp;
 
-    // Required no-arg constructor for Jackson
+    // 1. Default Constructor (Required for Jackson)
     public InventoryReservedEvent() {
     }
 
-    public InventoryReservedEvent(
-            String orderId,
-            String productId,
-            int quantity,
-            Instant timestamp
-    ) {
+    // 2. Constructor for the UseCase
+    public InventoryReservedEvent(String orderId, Instant timestamp) {
         this.orderId = orderId;
-        this.productId = productId;
-        this.quantity = quantity;
         this.timestamp = timestamp;
     }
 
+    // 3. Getters & Setters
     public String getOrderId() {
         return orderId;
     }
 
     public void setOrderId(String orderId) {
         this.orderId = orderId;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
     }
 
     public Instant getTimestamp() {
