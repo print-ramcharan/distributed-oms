@@ -1480,7 +1480,7 @@ Saga now sends:
 inventory.reserve.command
 ```
 
-Inventory replies:
+Inventory replied:
 
 ```
 inventory.reserved
