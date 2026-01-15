@@ -1,4 +1,4 @@
-package com.oms.orderservice.domain.model;
+package com.oms.eventcontracts.enums;
 
 public enum OrderProgress {
     ORDER_ACCEPTED,
@@ -8,5 +8,3 @@ public enum OrderProgress {
     ORDER_COMPLETED,
     ORDER_FAILED
 }
-
-

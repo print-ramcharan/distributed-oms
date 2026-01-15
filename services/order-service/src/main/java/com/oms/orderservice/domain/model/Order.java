@@ -1,7 +1,9 @@
 package com.oms.orderservice.domain.model;
 
+import com.oms.eventcontracts.enums.OrderProgress;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -37,6 +39,7 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "progress", nullable = false)
     private OrderProgress progress;
@@ -94,4 +97,5 @@ public class Order {
         this.status = OrderStatus.FAILED;
         // Optional: persist failure reason in a column later
     }
+
 }
