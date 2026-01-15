@@ -19,6 +19,10 @@ public class Order {
     @Column(name = "order_id", updatable = false, nullable = false)
     private UUID id;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
