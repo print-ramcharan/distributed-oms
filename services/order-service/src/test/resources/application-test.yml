@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: order-service-test
+  datasource:
+    url: jdbc:tc:postgresql:15:///orderdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Kafka (Mocked or Embedded if needed, but here disabling listeners to avoid connection errors if not using EmbeddedKafka)
+  kafka:
+    bootstrap-servers: localhost:9092 # Default fallback
+    consumer:
+      auto-startup: false # Disable consumers by default in tests
+
+  # Redis - Will be handled by Testcontainers System Properties override
+  data:
+    redis:
+      host: localhost
+      port: 6379 
+
+idempotency:
+  order:
+    ttl-hours: 24
