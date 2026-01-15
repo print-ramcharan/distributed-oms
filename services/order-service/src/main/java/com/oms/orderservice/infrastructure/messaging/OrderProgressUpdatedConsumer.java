@@ -21,7 +21,7 @@ public class OrderProgressUpdatedConsumer {
     public void handle(OrderProgressUpdatedEvent event) {
         orderRepository.findById(event.getOrderId())
                 .ifPresent(order -> {
-                    order.setProgress(event.getProgress());
+                    order.advanceProgress(event.getProgress());
                 });
     }
 }
