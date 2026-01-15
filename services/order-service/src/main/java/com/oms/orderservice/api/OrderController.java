@@ -1,5 +1,6 @@
 package com.oms.orderservice.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.oms.orderservice.api.dto.CreateOrderRequest;
 import com.oms.orderservice.api.dto.CreateOrderResponse;
 import com.oms.orderservice.api.dto.OrderItemRequest;
@@ -12,25 +13,102 @@ import org.springframework.web.bind.annotation.*;
 import java.util.stream.Collectors;
 
 import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oms.orderservice.infrastructure.idempotency.IdempotencyResult;
+import com.oms.orderservice.infrastructure.idempotency.IdempotencyService;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
 
     private final OrderCommandService orderCommandService;
+    private final IdempotencyService idempotencyService;
+    private final ObjectMapper objectMapper;
 
-    public OrderController(OrderCommandService orderCommandService){
+
+    public OrderController(OrderCommandService orderCommandService, IdempotencyService idempotencyService, ObjectMapper objectMapper){
         this.orderCommandService = orderCommandService;
+        this.idempotencyService = idempotencyService;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public CreateOrderResponse createOrder(@Valid @RequestBody CreateOrderRequest request){
-        List<OrderItem> items = request.getItems().stream().map(this::toDomain).collect(Collectors.toList());
+//    @ResponseStatus(HttpStatus.CREATED)
+    public CreateOrderResponse createOrder(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody CreateOrderRequest request
+    ){
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Idempotency-Key header is required"
+            );
+        }
 
-        Order order = orderCommandService.createOrder(items);
 
-        return new CreateOrderResponse(order.getId(), order.getStatus());
+        IdempotencyResult result = idempotencyService.tryAcquire(idempotencyKey);
+
+        if (!result.isAcquired()) {
+
+            if (result.isCompleted()) {
+                try {
+                    return objectMapper.readValue(
+                            result.getExistingRecord().getResponse(),
+                            CreateOrderResponse.class
+                    );
+                } catch (Exception e) {
+                    throw new IllegalStateException("Failed to deserialize cached response", e);
+                }
+            }
+
+            if (result.isInProgress()) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Order creation already in progress for this Idempotency-Key"
+                );
+            }
+        }
+
+        try {
+            List<OrderItem> items = request.getItems()
+                    .stream()
+                    .map(this::toDomain)
+                    .collect(Collectors.toList());
+
+            Order order = orderCommandService.createOrder(items);
+
+            CreateOrderResponse response =
+                    new CreateOrderResponse(order.getId(), order.getStatus());
+
+            try {
+                String responseJson = objectMapper.writeValueAsString(response);
+
+                idempotencyService.markCompleted(
+                        idempotencyKey,
+                        order.getId(),
+                        responseJson
+                );
+            } catch (JsonProcessingException e) {
+                idempotencyService.clear(idempotencyKey);
+                throw new IllegalStateException("Failed to serialize idempotent response", e);
+            }
+
+
+
+            return response;
+
+        } catch (Exception ex) {
+            idempotencyService.clear(idempotencyKey);
+            throw ex;
+        }
+
+
+//        List<OrderItem> items = request.getItems().stream().map(this::toDomain).collect(Collectors.toList());
+//
+//        Order order = orderCommandService.createOrder(items);
+//
+//        return new CreateOrderResponse(order.getId(), order.getStatus());
     }
 
     private OrderItem toDomain(OrderItemRequest item){
