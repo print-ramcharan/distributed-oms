@@ -95,6 +95,11 @@
             <artifactId>hibernate-core</artifactId>
         </dependency>
 
+        <!-- Redis (Spring Data Redis) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.oms</groupId>

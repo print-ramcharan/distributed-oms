@@ -1,4 +1,4 @@
-package com.oms.orderservice.config;
+package com.oms.orderservice.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
