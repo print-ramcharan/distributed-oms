@@ -1,9 +1,9 @@
 package com.oms.orderservice.domain.model;
 
 import com.oms.eventcontracts.enums.OrderProgress;
+import com.oms.orderservice.domain.lifecycle.OrderProgressTransitions;
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,7 +39,6 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
-    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "progress", nullable = false)
     private OrderProgress progress;
@@ -97,5 +96,18 @@ public class Order {
         this.status = OrderStatus.FAILED;
         // Optional: persist failure reason in a column later
     }
+
+    public void advanceProgress(OrderProgress next) {
+        if (this.progress == next) {
+            return; // idempotent replay
+        }
+        if (!OrderProgressTransitions.isValid(this.progress, next)) {
+            throw new IllegalStateException(
+                    "Invalid progress transition: " + this.progress + " → " + next
+            );
+        }
+        this.progress = next;
+    }
+
 
 }
