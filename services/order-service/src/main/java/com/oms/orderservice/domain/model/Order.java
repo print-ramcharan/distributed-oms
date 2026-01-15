@@ -1,5 +1,6 @@
 package com.oms.orderservice.domain.model;
 
+import com.oms.eventcontracts.enums.OrderProgress;
 import jakarta.persistence.*;
 import lombok.Getter;
 
