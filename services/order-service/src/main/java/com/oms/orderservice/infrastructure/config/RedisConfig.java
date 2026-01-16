@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @Configuration
+@org.springframework.cache.annotation.EnableCaching
 public class RedisConfig {
 
     @Bean
@@ -34,6 +35,16 @@ public class RedisConfig {
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
         return template;
+    }
+
+    @Bean
+    public org.springframework.data.redis.cache.RedisCacheConfiguration cacheConfiguration() {
+        return org.springframework.data.redis.cache.RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(java.time.Duration.ofMinutes(10))
+                .disableCachingNullValues()
+                .serializeValuesWith(
+                        org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair
+                                .fromSerializer(new GenericJackson2JsonRedisSerializer()));
     }
 
 }
