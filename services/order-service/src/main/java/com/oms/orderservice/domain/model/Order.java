@@ -11,10 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import java.io.Serializable;
+
 @Entity
 @Table(name = "orders")
 @Getter
-public class Order {
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+public class Order implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -25,11 +29,7 @@ public class Order {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @OneToMany(
-            mappedBy = "order",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(name = "total_amount", nullable = false)
@@ -52,8 +52,8 @@ public class Order {
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
-
-    protected Order() {}
+    protected Order() {
+    }
 
     /* ========= Factory ========= */
 
@@ -103,8 +103,7 @@ public class Order {
         // 3️⃣ Validate transition
         if (!OrderProgressTransitions.isCommandAllowed(this.progress, next)) {
             throw new IllegalStateException(
-                    "Illegal transition: " + this.progress + " → " + next
-            );
+                    "Illegal transition: " + this.progress + " → " + next);
         }
 
         // 4️⃣ Apply progress
@@ -124,14 +123,4 @@ public class Order {
         }
     }
 
-
 }
-
-
-
-
-
-
-
-
-
