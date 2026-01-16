@@ -1,7 +1,8 @@
 package com.oms.sagaorchestrator.saga.messaging;
 
+import com.oms.eventcontracts.commands.AdvanceOrderProgressCommand;
+import com.oms.eventcontracts.enums.OrderProgress;
 import com.oms.eventcontracts.events.InventoryReservedEvent;
-import com.oms.eventcontracts.events.OrderCompletedEvent;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
 import com.oms.sagaorchestrator.saga.domain.SagaState;
 import com.oms.sagaorchestrator.saga.repository.OrderSagaRepository;
@@ -12,7 +13,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Component
@@ -47,14 +47,16 @@ public class InventoryReservedListener {
             sagaRepository.save(saga);
 
             // 2. Create Event using the Record
-            OrderCompletedEvent finalEvent = new OrderCompletedEvent(
+            AdvanceOrderProgressCommand finalEvent =  new AdvanceOrderProgressCommand(
                     orderId,
-                    Instant.now().toString()
+                    OrderProgress.ORDER_COMPLETED
             );
+
+
 
             // 3. Send (This will work now because Records are serializable by default)
             log.info("Attempting to send OrderCompletedEvent...");
-            kafkaTemplate.send("order.completed", orderId.toString(), finalEvent);
+            kafkaTemplate.send("order.command.advance-progress", orderId.toString(), finalEvent);
 
             log.info("✅ OrderCompletedEvent SENT | orderId={}", orderId);
 

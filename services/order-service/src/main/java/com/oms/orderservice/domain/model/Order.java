@@ -1,9 +1,9 @@
 package com.oms.orderservice.domain.model;
 
 import com.oms.eventcontracts.enums.OrderProgress;
+import com.oms.orderservice.domain.lifecycle.OrderProgressTransitions;
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,13 +39,19 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
-    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "progress", nullable = false)
     private OrderProgress progress;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
 
     protected Order() {}
 
@@ -81,21 +87,51 @@ public class Order {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /* ========= Saga-controlled transitions ========= */
+    public void advanceProgress(OrderProgress next) {
 
-    public void markCompleted() {
-        if (this.status != OrderStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING orders can be completed");
+        // 1️⃣ Idempotency
+        if (this.progress == next) {
+            return;
         }
-        this.status = OrderStatus.CONFIRMED;
+
+        // 2️⃣ Terminal guard
+        if (this.progress == OrderProgress.ORDER_COMPLETED
+                || this.progress == OrderProgress.ORDER_FAILED) {
+            throw new IllegalStateException("Order is in terminal state");
+        }
+
+        // 3️⃣ Validate transition
+        if (!OrderProgressTransitions.isCommandAllowed(this.progress, next)) {
+            throw new IllegalStateException(
+                    "Illegal transition: " + this.progress + " → " + next
+            );
+        }
+
+        // 4️⃣ Apply progress
+        this.progress = next;
+
+        // 5️⃣ Derive status (single authority)
+        switch (next) {
+            case ORDER_COMPLETED -> {
+                this.status = OrderStatus.COMPLETED;
+                this.completedAt = Instant.now();
+            }
+            case ORDER_FAILED -> {
+                this.status = OrderStatus.CANCELLED;
+                this.cancelledAt = Instant.now();
+            }
+            default -> this.status = OrderStatus.PENDING;
+        }
     }
 
-    public void markFailed(String reason) {
-        if (this.status == OrderStatus.CONFIRMED) {
-            throw new IllegalStateException("Cannot fail a confirmed order");
-        }
-        this.status = OrderStatus.FAILED;
-        // Optional: persist failure reason in a column later
-    }
 
 }
+
+
+
+
+
+
+
+
+

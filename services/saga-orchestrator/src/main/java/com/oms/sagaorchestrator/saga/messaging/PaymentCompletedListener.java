@@ -1,6 +1,8 @@
 package com.oms.sagaorchestrator.saga.messaging;
 
+import com.oms.eventcontracts.commands.AdvanceOrderProgressCommand;
 import com.oms.eventcontracts.commands.ReserveInventoryCommand;
+import com.oms.eventcontracts.enums.OrderProgress;
 import com.oms.eventcontracts.events.PaymentCompletedEvent;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
 import com.oms.sagaorchestrator.saga.domain.SagaState;
@@ -54,6 +56,16 @@ public class PaymentCompletedListener {
                 Instant.now()
         );
         // 3. Send ONE message
+
+        kafkaTemplate.send(
+                "order.command.advance-progress",
+                String.valueOf(event.getOrderId()),
+                new AdvanceOrderProgressCommand(
+                        event.getOrderId(),
+                        OrderProgress.AWAITING_STOCK_CONFIRMATION
+                )
+
+        );
         kafkaTemplate.send("inventory.reserve.command", orderId.toString(), command);
 
         log.info("Batch ReserveInventoryCommand sent for orderId={}", orderId);

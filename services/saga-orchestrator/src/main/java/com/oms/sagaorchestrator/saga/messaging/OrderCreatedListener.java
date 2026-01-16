@@ -1,6 +1,8 @@
 package com.oms.sagaorchestrator.saga.messaging;
 
+import com.oms.eventcontracts.commands.AdvanceOrderProgressCommand;
 import com.oms.eventcontracts.commands.InitiatePaymentCommand;
+import com.oms.eventcontracts.enums.OrderProgress;
 import com.oms.eventcontracts.events.OrderCreatedEvent;
 import com.oms.eventcontracts.events.OrderItemDTO;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
@@ -19,7 +21,7 @@ public class OrderCreatedListener {
     private final OrderSagaRepository sagaRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "order.created", groupId = "saga-orchestrator"
+    @KafkaListener(topics = "order.event.created", groupId = "saga-orchestrator"
 //            containerFactory = "genericKafkaListenerContainerFactory"
             )
     @Transactional
@@ -46,6 +48,15 @@ public class OrderCreatedListener {
             return;
         }
 
+        kafkaTemplate.send(
+                "order.command.advance-progress",
+                String.valueOf(event.getOrderId()),
+                new AdvanceOrderProgressCommand(
+                        event.getOrderId(),
+                        OrderProgress.AWAITING_PAYMENT
+                )
+
+        );
         // 1️⃣ Send PAYMENT command
         InitiatePaymentCommand command =
                 new InitiatePaymentCommand(event.getOrderId(), event.getAmount());
