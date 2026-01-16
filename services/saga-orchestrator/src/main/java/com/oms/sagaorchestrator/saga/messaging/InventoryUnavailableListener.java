@@ -1,8 +1,9 @@
 package com.oms.sagaorchestrator.saga.messaging;
 
+import com.oms.eventcontracts.commands.AdvanceOrderProgressCommand;
 import com.oms.eventcontracts.commands.RefundPaymentCommand;
+import com.oms.eventcontracts.enums.OrderProgress;
 import com.oms.eventcontracts.events.InventoryUnavailableEvent;
-import com.oms.eventcontracts.events.OrderCancelledEvent;
 import com.oms.sagaorchestrator.saga.domain.OrderSaga;
 import com.oms.sagaorchestrator.saga.domain.SagaState;
 import com.oms.sagaorchestrator.saga.repository.OrderSagaRepository;
@@ -66,13 +67,13 @@ public class InventoryUnavailableListener {
 
         // 3️⃣ Cancel the order
         kafkaTemplate.send(
-                "order.cancelled",
+                "order.command.advance-progress",
                 orderId.toString(),
-                new OrderCancelledEvent(
+                new AdvanceOrderProgressCommand(
                         orderId,
-                        "Inventory unavailable",
-                        Instant.now()
+                        OrderProgress.ORDER_FAILED
                 )
+
         );
 
         ack.acknowledge();
