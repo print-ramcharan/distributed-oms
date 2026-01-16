@@ -89,6 +89,23 @@ services:
     ports:
       - "9411:9411"
 
+  gateway-service:
+    build: ./services/gateway-service
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_ID=order-service
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://host.docker.internal:8081
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0=Path=/api/orders/**
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_FILTERS_0=StripPrefix=1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - zipkin
+
 volumes:
   order_db_data:
   payment_db_data:
