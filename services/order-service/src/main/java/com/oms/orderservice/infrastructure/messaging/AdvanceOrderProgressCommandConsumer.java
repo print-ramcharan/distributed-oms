@@ -30,8 +30,10 @@ public class AdvanceOrderProgressCommandConsumer {
 
     @KafkaListener(
             topics = "order.command.advance-progress",
-            groupId = "order-service"
+            groupId = "order-service",
+            containerFactory = "advanceOrderProgressKafkaListenerContainerFactory"
     )
+
     @Transactional
     public void handle(
             AdvanceOrderProgressCommand command,

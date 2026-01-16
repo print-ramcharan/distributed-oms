@@ -46,6 +46,13 @@ public class Order {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+
     protected Order() {}
 
     /* ========= Factory ========= */
@@ -80,28 +87,51 @@ public class Order {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-
     public void advanceProgress(OrderProgress next) {
 
+        // 1️⃣ Idempotency
         if (this.progress == next) {
-            return; // idempotent replay
+            return;
         }
 
+        // 2️⃣ Terminal guard
+        if (this.progress == OrderProgress.ORDER_COMPLETED
+                || this.progress == OrderProgress.ORDER_FAILED) {
+            throw new IllegalStateException("Order is in terminal state");
+        }
+
+        // 3️⃣ Validate transition
         if (!OrderProgressTransitions.isCommandAllowed(this.progress, next)) {
             throw new IllegalStateException(
-                    "Illegal commanded transition: " + this.progress + " → " + next
+                    "Illegal transition: " + this.progress + " → " + next
             );
         }
 
+        // 4️⃣ Apply progress
         this.progress = next;
 
-        // 🔐 DOMAIN-OWNED FACTS
-        for (OrderProgress derived : OrderProgressTransitions.derivedFrom(this.progress)) {
-            this.progress = derived;
+        // 5️⃣ Derive status (single authority)
+        switch (next) {
+            case ORDER_COMPLETED -> {
+                this.status = OrderStatus.COMPLETED;
+                this.completedAt = Instant.now();
+            }
+            case ORDER_FAILED -> {
+                this.status = OrderStatus.CANCELLED;
+                this.cancelledAt = Instant.now();
+            }
+            default -> this.status = OrderStatus.PENDING;
         }
     }
 
 
-
-
 }
+
+
+
+
+
+
+
+
+
