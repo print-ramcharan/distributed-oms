@@ -1,6 +1,5 @@
 package com.oms.orderservice.infrastructure.messaging;
 
-import com.oms.eventcontracts.events.OrderCompletedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
@@ -78,38 +77,6 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderCompletedEvent>
-    orderCompletedKafkaListenerContainerFactory(
-            DefaultErrorHandler sagaErrorHandler
-    ) {
-        ConcurrentKafkaListenerContainerFactory<String, OrderCompletedEvent> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-
-        // Create a specific consumer factory for OrderCompletedEvent
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-
-        // Define the deserializer EXPLICITLY for this event type
-        JsonDeserializer<OrderCompletedEvent> deserializer = new JsonDeserializer<>(OrderCompletedEvent.class);
-        deserializer.addTrustedPackages("*");
-        deserializer.setUseTypeHeaders(false); // Important since producer disabled headers
-
-        DefaultKafkaConsumerFactory<String, OrderCompletedEvent> consumerFactory =
-                new DefaultKafkaConsumerFactory<>(
-                        props,
-                        new StringDeserializer(),
-                        deserializer
-                );
-
-        factory.setConsumerFactory(consumerFactory);
-        factory.setCommonErrorHandler(sagaErrorHandler);
-        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
-
-        return factory;
-    }
 
     @Bean(name = "kafkaListenerContainerFactory")
     public ConcurrentKafkaListenerContainerFactory<String, Object>
