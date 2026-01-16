@@ -6,16 +6,21 @@ import lombok.Getter;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import java.io.Serializable;
+
 @Entity
 @Table(name = "order_items")
 @Getter
-public class OrderItem {
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+public class OrderItem implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "order_item_id", updatable = false, nullable = false)
     private UUID id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
