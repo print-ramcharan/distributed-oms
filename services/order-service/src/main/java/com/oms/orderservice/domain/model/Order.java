@@ -80,34 +80,6 @@ public class Order {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /* ========= Saga-controlled transitions ========= */
-
-    public void markCompleted() {
-        if (this.status != OrderStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING orders can be completed");
-        }
-        this.status = OrderStatus.CONFIRMED;
-    }
-
-    public void markFailed(String reason) {
-        if (this.status == OrderStatus.CONFIRMED) {
-            throw new IllegalStateException("Cannot fail a confirmed order");
-        }
-        this.status = OrderStatus.FAILED;
-        // Optional: persist failure reason in a column later
-    }
-
-//    public void advanceProgress(OrderProgress next) {
-//        if (this.progress == next) {
-//            return; // idempotent replay
-//        }
-//        if (!OrderProgressTransitions.isValid(this.progress, next)) {
-//            throw new IllegalStateException(
-//                    "Invalid progress transition: " + this.progress + " → " + next
-//            );
-//        }
-//        this.progress = next;
-//    }
 
     public void advanceProgress(OrderProgress next) {
 
