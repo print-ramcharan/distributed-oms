@@ -1,7 +1,11 @@
 package com.oms.orderservice.infrastructure.messaging;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oms.eventcontracts.commands.AdvanceOrderProgressCommand;
+import com.oms.eventcontracts.events.OrderProgressUpdatedEvent;
+import com.oms.orderservice.domain.outbox.OutboxEvent;
+import com.oms.orderservice.domain.outbox.OutboxRepository;
 import com.oms.orderservice.domain.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,12 +14,19 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.oms.orderservice.domain.outbox.AggregateType.ORDER;
+
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class AdvanceOrderProgressCommandConsumer {
 
     private final OrderRepository orderRepository;
+
+    private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
+
 
     @KafkaListener(
             topics = "order.command.advance-progress",
@@ -25,7 +36,7 @@ public class AdvanceOrderProgressCommandConsumer {
     public void handle(
             AdvanceOrderProgressCommand command,
             Acknowledgment ack
-    ) {
+    ){
         try {
             log.info(
                     "➡️ AdvanceOrderProgressCommand received: orderId={}, target={}",
@@ -33,17 +44,49 @@ public class AdvanceOrderProgressCommandConsumer {
                     command.getTargetProgress()
             );
 
-            orderRepository.findById(command.getOrderId())
-                    .ifPresent(order ->
-                            order.advanceProgress(command.getTargetProgress())
+            var order = orderRepository.findById(command.getOrderId())
+                    .orElseThrow(() ->
+                            new IllegalStateException(
+                                    "Order not found: " + command.getOrderId()
+                            )
                     );
 
+            order.advanceProgress(command.getTargetProgress());
+
+            OrderProgressUpdatedEvent event =
+                    new OrderProgressUpdatedEvent(
+                            order.getId(),
+                            order.getProgress()
+                    );
+
+
+            String payload;
+            try {
+                payload = objectMapper.writeValueAsString(event);
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Failed to serialize OrderProgressUpdatedEvent for order " + order.getId(),
+                        e
+                );
+            }
+
+            OutboxEvent outboxEvent = OutboxEvent.create(
+                    order.getId(),
+                    ORDER,
+                    OrderProgressUpdatedEvent.class.getSimpleName(),
+                    payload
+            );
+
+            outboxRepository.save(outboxEvent);
+
+            // ✅ ACK ONLY AFTER TRANSACTIONAL WORK IS DONE
             ack.acknowledge();
 
         } catch (Exception ex) {
             log.error("❌ Failed to handle AdvanceOrderProgressCommand", ex);
-            throw ex; // let Kafka retry / DLQ
+            throw ex;
         }
     }
 }
+
 
