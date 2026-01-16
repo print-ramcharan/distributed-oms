@@ -97,17 +97,39 @@ public class Order {
         // Optional: persist failure reason in a column later
     }
 
+//    public void advanceProgress(OrderProgress next) {
+//        if (this.progress == next) {
+//            return; // idempotent replay
+//        }
+//        if (!OrderProgressTransitions.isValid(this.progress, next)) {
+//            throw new IllegalStateException(
+//                    "Invalid progress transition: " + this.progress + " → " + next
+//            );
+//        }
+//        this.progress = next;
+//    }
+
     public void advanceProgress(OrderProgress next) {
+
         if (this.progress == next) {
             return; // idempotent replay
         }
-        if (!OrderProgressTransitions.isValid(this.progress, next)) {
+
+        if (!OrderProgressTransitions.isCommandAllowed(this.progress, next)) {
             throw new IllegalStateException(
-                    "Invalid progress transition: " + this.progress + " → " + next
+                    "Illegal commanded transition: " + this.progress + " → " + next
             );
         }
+
         this.progress = next;
+
+        // 🔐 DOMAIN-OWNED FACTS
+        for (OrderProgress derived : OrderProgressTransitions.derivedFrom(this.progress)) {
+            this.progress = derived;
+        }
     }
+
+
 
 
 }
