@@ -43,3 +43,4 @@ build/
 # Debug files
 debug_*.json
 *_output.json
+*.log
