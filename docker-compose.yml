@@ -90,7 +90,9 @@ services:
       - "9411:9411"
 
   gateway-service:
-    build: ./services/gateway-service
+    build:
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
     container_name: gateway-service
     ports:
       - "8080:8080"
@@ -98,16 +100,146 @@ services:
       - SERVER_PORT=8080
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
       - SPRING_CLOUD_GATEWAY_ROUTES_0_ID=order-service
-      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://host.docker.internal:8081
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://order-service:8081
       - SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0=Path=/api/orders/**
       - SPRING_CLOUD_GATEWAY_ROUTES_0_FILTERS_0=StripPrefix=1
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_ID=inventory-service
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_URI=http://inventory-service:8084
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0=Path=/api/inventory/**
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_FILTERS_0=StripPrefix=1
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_ID=payment-service
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_URI=http://payment-service:8082
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0=Path=/api/payments/**
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_FILTERS_0=StripPrefix=1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       - zipkin
+      - order-service
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: order-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://order-db:5432/orderdb
+      - SPRING_DATASOURCE_USERNAME=orderuser
+      - SPRING_DATASOURCE_PASSWORD=orderpass
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      - order-db
+      - kafka
+      - redis
+      - zipkin
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: notification-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVER_PORT=8083
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notificationdb
+      - SPRING_DATASOURCE_USERNAME=notificationuser
+      - SPRING_DATASOURCE_PASSWORD=notificationpass
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - SPRING_MAIL_HOST=mailhog
+      - SPRING_MAIL_PORT=1025
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - kafka
+      - notification-db
+      - mailhog
+      - zipkin
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    container_name: payment-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SERVER_PORT=8082
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://payment-db:5432/paymentdb
+      - SPRING_DATASOURCE_USERNAME=paymentuser
+      - SPRING_DATASOURCE_PASSWORD=paymentpass
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - payment-db
+      - kafka
+      - zipkin
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    container_name: inventory-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SERVER_PORT=8084
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://inventory-db:5432/inventorydb
+      - SPRING_DATASOURCE_USERNAME=inventoryuser
+      - SPRING_DATASOURCE_PASSWORD=inventorypass
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - inventory-db
+      - kafka
+      - zipkin
+
+  saga-orchestrator:
+    build:
+      context: .
+      dockerfile: services/saga-orchestrator/Dockerfile
+    container_name: saga-orchestrator
+    ports:
+      - "8085:8085"
+    environment:
+      - SERVER_PORT=8085
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://saga-db:5432/sagadb
+      - SPRING_DATASOURCE_USERNAME=sagauser
+      - SPRING_DATASOURCE_PASSWORD=sagapass
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      - saga-db
+      - kafka
+      - zipkin
+
+  notification-db:
+    image: postgres:15
+    container_name: notification-db
+    environment:
+      POSTGRES_DB: notificationdb
+      POSTGRES_USER: notificationuser
+      POSTGRES_PASSWORD: notificationpass
+    ports:
+      - "5437:5432"
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # HTTP UI
 
 volumes:
   order_db_data:
   payment_db_data:
   saga_db_data:
   inventory_db_data:
+  notification_db_data:
