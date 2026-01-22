@@ -7,6 +7,7 @@ import java.util.UUID;
 public class OrderCreatedEvent {
 
     private UUID orderId;
+    private String customerEmail;
     private BigDecimal amount;
     private List<OrderItemDTO> items;
 
@@ -14,14 +15,19 @@ public class OrderCreatedEvent {
     public OrderCreatedEvent() {
     }
 
-    public OrderCreatedEvent(UUID orderId, BigDecimal amount, List<OrderItemDTO> items) {
+    public OrderCreatedEvent(UUID orderId, String customerEmail, BigDecimal amount, List<OrderItemDTO> items) {
         this.orderId = orderId;
+        this.customerEmail = customerEmail;
         this.amount = amount;
         this.items = items;
     }
 
     public UUID getOrderId() {
         return orderId;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
     }
 
     public BigDecimal getAmount() {
