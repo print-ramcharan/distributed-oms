@@ -25,15 +25,14 @@ public class OrderCommandService {
     public OrderCommandService(
             OrderRepository orderRepository,
             OutboxRepository outboxRepository,
-            ObjectMapper objectMapper
-    ) {
+            ObjectMapper objectMapper) {
         this.orderRepository = orderRepository;
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
     }
 
-    public Order createOrder(List<OrderItem> items) {
-        Order order = Order.create(items);
+    public Order createOrder(List<OrderItem> items, String customerEmail) {
+        Order order = Order.create(items, customerEmail);
         orderRepository.save(order);
 
         // Convert domain objects → DTOs
@@ -42,19 +41,17 @@ public class OrderCommandService {
                 .map(this::toDto)
                 .collect(Collectors.toList());
 
-        OrderCreatedEvent event =
-                new OrderCreatedEvent(
-                        order.getId(),
-                        order.getTotalAmount(),
-                        itemDtos
-                );
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                order.getId(),
+                order.getCustomerEmail(),
+                order.getTotalAmount(),
+                itemDtos);
 
         OutboxEvent outboxEvent = OutboxEvent.create(
                 order.getId(),
                 ORDER,
                 OrderCreatedEvent.class.getSimpleName(),
-                serialize(event)
-        );
+                serialize(event));
 
         outboxRepository.save(outboxEvent);
 
@@ -65,8 +62,7 @@ public class OrderCommandService {
         return new OrderItemDTO(
                 item.getProductId(),
                 item.getQuantity(),
-                item.getPrice()
-        );
+                item.getPrice());
     }
 
     private String serialize(Object event) {

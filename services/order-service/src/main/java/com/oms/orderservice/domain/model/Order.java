@@ -35,6 +35,9 @@ public class Order implements Serializable {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
+    @Column(name = "customer_email", nullable = false)
+    private String customerEmail;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
@@ -57,12 +60,16 @@ public class Order implements Serializable {
 
     /* ========= Factory ========= */
 
-    public static Order create(List<OrderItem> rawItems) {
+    public static Order create(List<OrderItem> rawItems, String customerEmail) {
         if (rawItems == null || rawItems.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
         }
+        if (customerEmail == null || customerEmail.isBlank()) {
+            throw new IllegalArgumentException("Customer email must be provided");
+        }
 
         Order order = new Order();
+        order.customerEmail = customerEmail;
         order.createdAt = Instant.now();
         order.status = OrderStatus.PENDING;
         order.progress = OrderProgress.ORDER_ACCEPTED;

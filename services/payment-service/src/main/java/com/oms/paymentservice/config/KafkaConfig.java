@@ -16,12 +16,12 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.beans.factory.annotation.Value;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import java.nio.charset.StandardCharsets;
 import org.apache.kafka.common.TopicPartition;
-
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,138 +31,121 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
 
+        @Value("${spring.kafka.bootstrap-servers}")
+        private String bootstrapServers;
 
-    @Bean
-    public DefaultErrorHandler kafkaErrorHandler(DeadLetterPublishingRecoverer recoverer) {
+        @Bean
+        public DefaultErrorHandler kafkaErrorHandler(DeadLetterPublishingRecoverer recoverer) {
 
-        FixedBackOff backOff = new FixedBackOff(1000L, 2L);
+                FixedBackOff backOff = new FixedBackOff(1000L, 2L);
 
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+                DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
 
-        errorHandler.setRetryListeners((record, ex, deliveryAttempt) -> {
-            log.warn(
-                    "Retry {} for record topic={}, partition={}, offset={}",
-                    deliveryAttempt,
-                    record.topic(),
-                    record.partition(),
-                    record.offset(),
-                    ex
-            );
-        });
+                errorHandler.setRetryListeners((record, ex, deliveryAttempt) -> {
+                        log.warn(
+                                        "Retry {} for record topic={}, partition={}, offset={}",
+                                        deliveryAttempt,
+                                        record.topic(),
+                                        record.partition(),
+                                        record.offset(),
+                                        ex);
+                });
 
-        errorHandler.addNotRetryableExceptions(
-                org.springframework.kafka.support.serializer.DeserializationException.class,
-                org.apache.kafka.common.errors.SerializationException.class,
-                IllegalArgumentException.class
-        );
+                errorHandler.addNotRetryableExceptions(
+                                org.springframework.kafka.support.serializer.DeserializationException.class,
+                                org.apache.kafka.common.errors.SerializationException.class,
+                                IllegalArgumentException.class);
 
-        errorHandler.setCommitRecovered(true);
+                errorHandler.setCommitRecovered(true);
 
-        return errorHandler;
-    }
+                return errorHandler;
+        }
 
+        @Bean
+        public ProducerFactory<String, Object> producerFactory() {
+                Map<String, Object> config = new HashMap<>();
+                config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+                config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
-    @Bean
-    public ProducerFactory<String, Object> producerFactory() {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+                return new DefaultKafkaProducerFactory<>(config);
+        }
 
+        @Bean
+        public KafkaTemplate<String, Object> kafkaTemplate() {
+                return new KafkaTemplate<>(producerFactory());
+        }
 
-        return new DefaultKafkaProducerFactory<>(config);
-    }
+        @Bean
+        public ConsumerFactory<String, InitiatePaymentCommand> consumerFactory() {
+                Map<String, Object> props = new HashMap<>();
 
-    @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
-    }
+                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                props.put(ConsumerConfig.GROUP_ID_CONFIG, "payment-service");
+                props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+                props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                                org.springframework.kafka.support.serializer.ErrorHandlingDeserializer.class);
+                props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                                org.springframework.kafka.support.serializer.ErrorHandlingDeserializer.class);
 
-    @Bean
-    public ConsumerFactory<String, InitiatePaymentCommand> consumerFactory() {
-        Map<String, Object> props = new HashMap<>();
+                props.put("spring.deserializer.key.delegate.class",
+                                StringDeserializer.class);
+                props.put("spring.deserializer.value.delegate.class",
+                                JsonDeserializer.class);
 
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "payment-service");
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+                props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.oms.eventcontracts");
+                props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+                props.put(JsonDeserializer.VALUE_DEFAULT_TYPE,
+                                "com.oms.eventcontracts.commands.InitiatePaymentCommand");
 
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                org.springframework.kafka.support.serializer.ErrorHandlingDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                org.springframework.kafka.support.serializer.ErrorHandlingDeserializer.class);
+                return new DefaultKafkaConsumerFactory<>(props);
+        }
 
-        props.put("spring.deserializer.key.delegate.class",
-                StringDeserializer.class);
-        props.put("spring.deserializer.value.delegate.class",
-                JsonDeserializer.class);
+        @Bean
+        public ConcurrentKafkaListenerContainerFactory<String, InitiatePaymentCommand> kafkaListenerContainerFactory(
+                        DefaultErrorHandler kafkaErrorHandler) {
 
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.oms.eventcontracts");
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE,
-                "com.oms.eventcontracts.commands.InitiatePaymentCommand");
+                ConcurrentKafkaListenerContainerFactory<String, InitiatePaymentCommand> factory = new ConcurrentKafkaListenerContainerFactory<>();
 
+                factory.setConsumerFactory(consumerFactory());
+                factory.setCommonErrorHandler(kafkaErrorHandler);
 
-        return new DefaultKafkaConsumerFactory<>(props);
-    }
+                return factory;
+        }
 
+        @Bean
+        public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(
+                        KafkaTemplate<String, Object> kafkaTemplate) {
+                DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                                kafkaTemplate,
+                                (record, ex) -> new TopicPartition(
+                                                record.topic() + ".dlq",
+                                                record.partition()));
 
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, InitiatePaymentCommand>
-    kafkaListenerContainerFactory(DefaultErrorHandler kafkaErrorHandler) {
+                recoverer.setHeadersFunction((record, ex) -> {
+                        Headers headers = new RecordHeaders();
 
-        ConcurrentKafkaListenerContainerFactory<String, InitiatePaymentCommand> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+                        headers.add(
+                                        "dlq-exception-class",
+                                        ex.getClass().getName().getBytes(StandardCharsets.UTF_8));
+                        headers.add(
+                                        "dlq-exception-message",
+                                        String.valueOf(ex.getMessage()).getBytes(StandardCharsets.UTF_8));
+                        headers.add(
+                                        "dlq-original-topic",
+                                        record.topic().getBytes(StandardCharsets.UTF_8));
+                        headers.add(
+                                        "dlq-original-partition",
+                                        String.valueOf(record.partition()).getBytes(StandardCharsets.UTF_8));
+                        headers.add(
+                                        "dlq-original-offset",
+                                        String.valueOf(record.offset()).getBytes(StandardCharsets.UTF_8));
 
-        factory.setConsumerFactory(consumerFactory());
-        factory.setCommonErrorHandler(kafkaErrorHandler);
+                        return headers;
+                });
 
-        return factory;
-    }
-
-
-    @Bean
-    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(
-            KafkaTemplate<String, Object> kafkaTemplate
-    ) {
-        DeadLetterPublishingRecoverer recoverer =
-                new DeadLetterPublishingRecoverer(
-                        kafkaTemplate,
-                        (record, ex) -> new TopicPartition(
-                                record.topic() + ".dlq",
-                                record.partition()
-                        )
-                );
-
-        recoverer.setHeadersFunction((record, ex) -> {
-            Headers headers = new RecordHeaders();
-
-            headers.add(
-                    "dlq-exception-class",
-                    ex.getClass().getName().getBytes(StandardCharsets.UTF_8)
-            );
-            headers.add(
-                    "dlq-exception-message",
-                    String.valueOf(ex.getMessage()).getBytes(StandardCharsets.UTF_8)
-            );
-            headers.add(
-                    "dlq-original-topic",
-                    record.topic().getBytes(StandardCharsets.UTF_8)
-            );
-            headers.add(
-                    "dlq-original-partition",
-                    String.valueOf(record.partition()).getBytes(StandardCharsets.UTF_8)
-            );
-            headers.add(
-                    "dlq-original-offset",
-                    String.valueOf(record.offset()).getBytes(StandardCharsets.UTF_8)
-            );
-
-            return headers;
-        });
-
-        return recoverer;
-    }
-
+                return recoverer;
+        }
 
 }

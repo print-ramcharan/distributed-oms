@@ -27,24 +27,25 @@ public class KafkaInventoryEventPublisher implements InventoryEventPublisher {
         kafkaTemplate.send(
                 inventoryReservedTopic,
                 event.getOrderId(),
-                event
-        ).whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Failed to publish InventoryReservedEvent", ex);
-            }
-        });
+                event).whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish InventoryReservedEvent", ex);
+                    }
+                });
     }
 
     @Override
     public void publishInventoryUnavailable(InventoryUnavailableEvent event) {
-        kafkaTemplate.send(
-                inventoryUnavailableTopic,
-                event.getOrderId(),
-                event
-        ).whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Failed to publish InventoryUnavailableEvent", ex);
-            }
-        });
+        try {
+            log.info("Attempting to publish InventoryUnavailableEvent: {}", event);
+            var result = kafkaTemplate.send(
+                    inventoryUnavailableTopic,
+                    event.getOrderId(),
+                    event).get(); // BLOCKING for debug
+            log.info("Successfully published InventoryUnavailableEvent: {}", result.getRecordMetadata());
+        } catch (Exception e) {
+            log.error("FATAL ERROR publishing InventoryUnavailableEvent", e);
+            throw new RuntimeException(e);
+        }
     }
 }
