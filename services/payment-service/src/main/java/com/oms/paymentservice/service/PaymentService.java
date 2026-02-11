@@ -1,71 +1,67 @@
 package com.oms.paymentservice.service;
 
-import com.oms.eventcontracts.events.PaymentCompletedEvent;
-import com.oms.eventcontracts.events.PaymentFailedEvent;
-import com.oms.paymentservice.entity.Payment;
-import com.oms.paymentservice.entity.PaymentStatus;
+import com.oms.paymentservice.domain.Payment;
+import com.oms.paymentservice.domain.PaymentStatus;
 import com.oms.paymentservice.repository.PaymentRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
 public class PaymentService {
-    private final PaymentRepository paymentRepository;
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-
-    public PaymentService(PaymentRepository paymentRepository, KafkaTemplate<String, Object> kafkaTemplate){
-        this.paymentRepository = paymentRepository;
-        this.kafkaTemplate = kafkaTemplate;
-    }
-
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Transactional
-    public Payment createPendingPayment(UUID orderId, BigDecimal amount){
+    public Payment createPayment(UUID orderId, BigDecimal amount) {
+        // Idempotency: check if payment already exists
         return paymentRepository.findByOrderId(orderId)
-                                .orElseGet(() -> {
-                                    Payment payment = Payment.builder().id(UUID.randomUUID())
-                                                                       .orderId(orderId)
-                                                                       .amount(amount)
-                                                                       .currency("INR")
-                                                                       .status(PaymentStatus.PENDING)
-                                                                       .createdAt(Instant.now())
-                                                                       .updatedAt(Instant.now()).build();
-                                    return paymentRepository.save(payment);
-                                });
+                .orElseGet(() -> {
+                    Payment payment = new Payment(orderId, amount);
+                    return paymentRepository.save(payment);
+                });
     }
 
     @Transactional
-    public void completePayment(UUID orderId){
-        Payment payment = paymentRepository.findByOrderId(orderId).orElseThrow();
+    public Payment processPayment(UUID orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
-        payment.setStatus(PaymentStatus.COMPLETED);
-        payment.setUpdatedAt(Instant.now());
-
-        paymentRepository.save(payment);
-        Instant instant = Instant.now();
-        kafkaTemplate.send("payment.completed", new PaymentCompletedEvent(payment.getOrderId(), payment.getId(), payment.getAmount(), instant));
-
+        payment.markCompleted();
+        return paymentRepository.save(payment);
     }
 
     @Transactional
-    public void failPayment(UUID orderId, String reason){
-        Payment payment = paymentRepository.findByOrderId(orderId).orElseThrow();
+    public Payment refundPayment(UUID orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
-        payment.setStatus(PaymentStatus.FAILED);
-        payment.setUpdatedAt(Instant.now());
-
-        paymentRepository.save(payment);
-        Instant instant = Instant.now();
-
-        kafkaTemplate.send("payment.failed", new PaymentFailedEvent(payment.getOrderId(), payment.getId(), reason, instant));
+        payment.markRefunded();
+        return paymentRepository.save(payment);
     }
 
+    @Transactional
+    public Payment markPaymentFailed(UUID orderId, String reason) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
+        payment.markFailed(reason);
+        return paymentRepository.save(payment);
+    }
+
+    // ========== Backward-compatible methods for existing consumers ==========
+
+    @Transactional
+    public Payment createPendingPayment(UUID orderId, BigDecimal amount) {
+        return createPayment(orderId, amount);
+    }
+
+    @Transactional
+    public Payment completePayment(UUID orderId) {
+        return processPayment(orderId);
+    }
 }
