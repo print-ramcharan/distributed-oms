@@ -34,9 +34,9 @@ public class OrderController {
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
 
-
-    public OrderController(OrderCommandService orderCommandService, OrderQueryService orderQueryService, OrderQueryRepository orderQueryRepository,
-                           IdempotencyService idempotencyService, ObjectMapper objectMapper) {
+    public OrderController(OrderCommandService orderCommandService, OrderQueryService orderQueryService,
+            OrderQueryRepository orderQueryRepository,
+            IdempotencyService idempotencyService, ObjectMapper objectMapper) {
         this.orderCommandService = orderCommandService;
         this.orderQueryService = orderQueryService;
         this.orderQueryRepository = orderQueryRepository;
@@ -47,19 +47,14 @@ public class OrderController {
     @GetMapping("/{id}")
     public ResponseEntity<CreateOrderResponse> getOrder(@PathVariable UUID id) {
         return orderQueryService.findOrderById(id)
-                .map(order ->
-                        ResponseEntity.ok(
-                                new CreateOrderResponse(order.getId(), order.getStatus())
-                        )
-                )
+                .map(order -> ResponseEntity.ok(
+                        new CreateOrderResponse(order.getId(), order.getStatus())))
                 .orElse(ResponseEntity.notFound().build());
     }
 
-
     @GetMapping
     public ResponseEntity<List<OrderSummaryResponse>> listOrders(
-            @RequestParam(defaultValue = "100") int limit
-    ) {
+            @RequestParam(defaultValue = "100") int limit) {
         return ResponseEntity.ok(orderQueryRepository.findRecent(limit));
     }
 
@@ -101,7 +96,7 @@ public class OrderController {
                     .map(this::toDomain)
                     .collect(Collectors.toList());
 
-            Order order = orderCommandService.createOrder(items);
+            Order order = orderCommandService.createOrder(items, request.getCustomerEmail());
 
             CreateOrderResponse response = new CreateOrderResponse(order.getId(), order.getStatus());
 

@@ -43,7 +43,7 @@ class OrderRepositoryTest {
     @Test
     void shouldSaveAndFindOrder() {
         OrderItem item = OrderItem.create("prod-1", 2, BigDecimal.valueOf(100));
-        Order order = Order.create(List.of(item));
+        Order order = Order.create(List.of(item), "test@example.com");
 
         Order saved = orderRepository.save(order);
         assertThat(saved.getId()).isNotNull();

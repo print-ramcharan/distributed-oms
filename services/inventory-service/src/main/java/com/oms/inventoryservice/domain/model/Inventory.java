@@ -3,13 +3,17 @@ package com.oms.inventoryservice.domain.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import java.time.Instant;
 
 @Entity
 @Table(name = "inventory")
 @Getter
+@Setter
 @NoArgsConstructor
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public class Inventory {
 
     // Aggregate identity: one inventory row per product
@@ -55,9 +59,7 @@ public class Inventory {
             throw new InsufficientStockException(
                     String.format(
                             "Insufficient stock for product %s. Available=%d, Requested=%d",
-                            productId, availableQuantity, quantity
-                    )
-            );
+                            productId, availableQuantity, quantity));
         }
 
         this.availableQuantity -= quantity;

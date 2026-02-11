@@ -13,6 +13,7 @@ public class CreateOrderRequest {
     @Valid
     private List<OrderItemRequest> items;
 
-
+    @NotEmpty(message = "customerEmail must not be empty")
+    private String customerEmail;
 
 }
