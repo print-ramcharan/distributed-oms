@@ -45,7 +45,7 @@ class OrderCommandServiceTest {
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         // When
-        Order result = orderCommandService.createOrder(items);
+        Order result = orderCommandService.createOrder(items, "test@example.com");
 
         // Then
         assertThat(result).isNotNull();
