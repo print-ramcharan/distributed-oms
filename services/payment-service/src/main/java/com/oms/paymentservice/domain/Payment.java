@@ -18,7 +18,7 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "order_id", nullable = false, unique = true)
     private UUID orderId;
 
     @Column(nullable = false)
@@ -28,11 +28,10 @@ public class Payment {
     @Column(nullable = false)
     private PaymentStatus status;
 
-    private String failureReason;
-
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     public Payment(UUID orderId, BigDecimal amount) {
@@ -55,12 +54,11 @@ public class Payment {
         this.updatedAt = Instant.now();
     }
 
-    public void markFailed(String reason) {
+    public void markFailed() {
         if (status != PaymentStatus.PENDING && status != PaymentStatus.COMPLETED) {
             throw new IllegalStateException("Cannot fail payment from status: " + status);
         }
         this.status = PaymentStatus.FAILED;
-        this.failureReason = reason;
         this.updatedAt = Instant.now();
     }
 
