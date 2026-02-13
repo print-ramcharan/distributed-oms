@@ -28,6 +28,9 @@ public class Payment {
     @Column(nullable = false)
     private PaymentStatus status;
 
+    @Column(nullable = false)
+    private String currency;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -38,6 +41,7 @@ public class Payment {
         this.orderId = orderId;
         this.amount = amount;
         this.status = PaymentStatus.PENDING;
+        this.currency = "USD"; // Default currency
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
