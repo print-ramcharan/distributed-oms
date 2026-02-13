@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -26,17 +25,14 @@ public class InventoryUnavailableListener {
         private final OrderSagaRepository sagaRepository;
         private final KafkaTemplate<String, Object> kafkaTemplate;
 
-        @KafkaListener(
-                topics = "${kafka.topics.inventory-unavailable}",
-                containerFactory = "inventoryUnavailableKafkaListenerContainerFactory"
-        )
+        @KafkaListener(topics = "${kafka.topics.inventory-unavailable}", containerFactory = "inventoryUnavailableKafkaListenerContainerFactory", groupId = "${kafka.consumer.group-id}")
         @Transactional
         public void handle(InventoryUnavailableEvent event) {
 
                 UUID orderId = UUID.fromString(event.getOrderId());
 
                 log.info("InventoryUnavailable | orderId={} | reason={}",
-                        orderId, event.getReason());
+                                orderId, event.getReason());
 
                 OrderSaga saga = sagaRepository.findById(orderId).orElse(null);
 
@@ -49,7 +45,7 @@ public class InventoryUnavailableListener {
                 // ✅ Idempotency guard
                 if (saga.getState() != SagaState.INVENTORY_REQUESTED) {
                         log.warn("Ignoring InventoryUnavailable for order {} in state {}",
-                                orderId, saga.getState());
+                                        orderId, saga.getState());
                         return;
                 }
 
@@ -59,24 +55,20 @@ public class InventoryUnavailableListener {
 
                 // 2️⃣ Refund payment
                 kafkaTemplate.send(
-                        "payment.refund.command",
-                        orderId.toString(),
-                        new RefundPaymentCommand(
-                                orderId,
-                                saga.getAmount(),
-                                event.getReason(),
-                                Instant.now()
-                        )
-                );
+                                "payment.refund.command",
+                                orderId.toString(),
+                                new RefundPaymentCommand(
+                                                orderId,
+                                                saga.getAmount(),
+                                                event.getReason(),
+                                                Instant.now()));
 
                 // 3️⃣ Fail order
                 kafkaTemplate.send(
-                        "order.command.advance-progress",
-                        orderId.toString(),
-                        new AdvanceOrderProgressCommand(
-                                orderId,
-                                OrderProgress.ORDER_FAILED
-                        )
-                );
+                                "order.command.advance-progress",
+                                orderId.toString(),
+                                new AdvanceOrderProgressCommand(
+                                                orderId,
+                                                OrderProgress.ORDER_FAILED));
         }
 }
