@@ -28,47 +28,77 @@ public class InventoryUnavailableListener {
         @KafkaListener(topics = "${kafka.topics.inventory-unavailable}", containerFactory = "inventoryUnavailableKafkaListenerContainerFactory", groupId = "${kafka.consumer.group-id}")
         @Transactional
         public void handle(InventoryUnavailableEvent event) {
+                try {
+                        UUID orderId = UUID.fromString(event.getOrderId());
 
-                UUID orderId = UUID.fromString(event.getOrderId());
+                        log.info("🔴 InventoryUnavailableEvent received | orderId={} | reason={}",
+                                        orderId, event.getReason());
 
-                log.info("InventoryUnavailable | orderId={} | reason={}",
-                                orderId, event.getReason());
+                        // 1️⃣ Load saga
+                        OrderSaga saga = sagaRepository.findById(orderId).orElse(null);
+                        if (saga == null) {
+                                log.warn("⚠️  Saga not found for order {}, ignoring event", orderId);
+                                return;
+                        }
+                        log.info("✓ Saga loaded | currentState={}", saga.getState());
 
-                OrderSaga saga = sagaRepository.findById(orderId).orElse(null);
+                        // 2️⃣ Idempotency guard
+                        if (saga.getState() != SagaState.INVENTORY_REQUESTED) {
+                                log.warn("⚠️  Ignoring event - saga in wrong state | orderId={} | currentState={} | expectedState=INVENTORY_REQUESTED",
+                                                orderId, saga.getState());
+                                return;
+                        }
 
-                // ✅ Saga may not exist — this is NOT an error
-                if (saga == null) {
-                        log.warn("Saga not found for order {}, ignoring", orderId);
-                        return;
+                        // 3️⃣ Transition: INVENTORY_REQUESTED → INVENTORY_FAILED → COMPENSATING
+                        log.info("→ Transitioning saga to INVENTORY_FAILED...");
+                        saga.markInventoryFailed();
+                        sagaRepository.save(saga);
+                        log.info("✓ Saga transitioned to INVENTORY_FAILED");
+
+                        log.info("→ Transitioning saga to COMPENSATING...");
+                        saga.markCompensating();
+                        sagaRepository.save(saga);
+                        log.info("✓ Saga transitioned to COMPENSATING");
+
+                        // 4️⃣ Send refund command (synchronous)
+                        log.info("→ Sending RefundPaymentCommand...");
+                        var refundCommand = new RefundPaymentCommand(
+                                        orderId,
+                                        saga.getAmount(),
+                                        event.getReason(),
+                                        Instant.now());
+
+                        var refundResult = kafkaTemplate.send(
+                                        "payment.refund.command",
+                                        orderId.toString(),
+                                        refundCommand).get(); // Synchronous send
+
+                        log.info("✓ RefundPaymentCommand sent successfully | recordMetadata={}",
+                                        refundResult.getRecordMetadata());
+
+                        // 5️⃣ Send order failure command (synchronous)
+                        log.info("→ Sending AdvanceOrderProgressCommand(ORDER_FAILED)...");
+                        var orderFailCommand = new AdvanceOrderProgressCommand(
+                                        orderId,
+                                        OrderProgress.ORDER_FAILED);
+
+                        var orderFailResult = kafkaTemplate.send(
+                                        "order.command.advance-progress",
+                                        orderId.toString(),
+                                        orderFailCommand).get(); // Synchronous send
+
+                        log.info("✓ AdvanceOrderProgressCommand sent successfully | recordMetadata={}",
+                                        orderFailResult.getRecordMetadata());
+
+                        log.info("✅ Rollback compensation completed successfully | orderId={}", orderId);
+
+                } catch (IllegalStateException e) {
+                        log.error("❌ Invalid state transition in saga | error={}", e.getMessage(), e);
+                        throw new RuntimeException("Saga state transition failed", e);
+                } catch (Exception e) {
+                        log.error("❌ Failed to process InventoryUnavailableEvent | orderId={} | error={}",
+                                        event.getOrderId(), e.getMessage(), e);
+                        throw new RuntimeException("Rollback compensation failed", e);
                 }
-
-                // ✅ Idempotency guard
-                if (saga.getState() != SagaState.INVENTORY_REQUESTED) {
-                        log.warn("Ignoring InventoryUnavailable for order {} in state {}",
-                                        orderId, saga.getState());
-                        return;
-                }
-
-                // 1️⃣ Compensate
-                saga.markCompensating();
-                sagaRepository.save(saga);
-
-                // 2️⃣ Refund payment
-                kafkaTemplate.send(
-                                "payment.refund.command",
-                                orderId.toString(),
-                                new RefundPaymentCommand(
-                                                orderId,
-                                                saga.getAmount(),
-                                                event.getReason(),
-                                                Instant.now()));
-
-                // 3️⃣ Fail order
-                kafkaTemplate.send(
-                                "order.command.advance-progress",
-                                orderId.toString(),
-                                new AdvanceOrderProgressCommand(
-                                                orderId,
-                                                OrderProgress.ORDER_FAILED));
         }
 }
