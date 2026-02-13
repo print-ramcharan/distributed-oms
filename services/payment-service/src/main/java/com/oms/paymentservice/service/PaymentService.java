@@ -49,7 +49,7 @@ public class PaymentService {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
-        payment.markFailed(reason);
+        payment.markFailed();
         return paymentRepository.save(payment);
     }
 
