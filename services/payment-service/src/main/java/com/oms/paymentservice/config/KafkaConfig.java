@@ -1,6 +1,7 @@
 package com.oms.paymentservice.config;
 
 import com.oms.eventcontracts.commands.InitiatePaymentCommand;
+import com.oms.eventcontracts.commands.RefundPaymentCommand;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -146,6 +147,46 @@ public class KafkaConfig {
                 });
 
                 return recoverer;
+        }
+
+        // ===================== REFUND PAYMENT CONSUMER =====================
+
+        @Bean
+        public ConsumerFactory<String, RefundPaymentCommand> refundConsumerFactory() {
+                Map<String, Object> props = new HashMap<>();
+
+                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                props.put(ConsumerConfig.GROUP_ID_CONFIG, "payment-service");
+                props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+                props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                                org.springframework.kafka.support.serializer.ErrorHandlingDeserializer.class);
+                props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                                org.springframework.kafka.support.serializer.ErrorHandlingDeserializer.class);
+
+                props.put("spring.deserializer.key.delegate.class",
+                                StringDeserializer.class);
+                props.put("spring.deserializer.value.delegate.class",
+                                JsonDeserializer.class);
+
+                props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.oms.eventcontracts");
+                props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+                props.put(JsonDeserializer.VALUE_DEFAULT_TYPE,
+                                "com.oms.eventcontracts.commands.RefundPaymentCommand");
+
+                return new DefaultKafkaConsumerFactory<>(props);
+        }
+
+        @Bean
+        public ConcurrentKafkaListenerContainerFactory<String, RefundPaymentCommand> refundKafkaListenerContainerFactory(
+                        DefaultErrorHandler kafkaErrorHandler) {
+
+                ConcurrentKafkaListenerContainerFactory<String, RefundPaymentCommand> factory = new ConcurrentKafkaListenerContainerFactory<>();
+
+                factory.setConsumerFactory(refundConsumerFactory());
+                factory.setCommonErrorHandler(kafkaErrorHandler);
+
+                return factory;
         }
 
 }

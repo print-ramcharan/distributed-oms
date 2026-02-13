@@ -22,7 +22,7 @@ public class PaymentRefundCommandConsumer {
         private final PaymentRepository paymentRepository;
         private final KafkaTemplate<String, Object> kafkaTemplate;
 
-        @KafkaListener(topics = "payment.refund.command", groupId = "payment-service")
+        @KafkaListener(topics = "payment.refund.command", groupId = "payment-service", containerFactory = "refundKafkaListenerContainerFactory")
         @Transactional
         public void handle(RefundPaymentCommand command) {
 
