@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.oms.orderservice.domain.outbox.AggregateType.ORDER;
@@ -31,8 +32,9 @@ public class OrderCommandService {
         this.objectMapper = objectMapper;
     }
 
-    public Order createOrder(List<OrderItem> items, String customerEmail) {
-        Order order = Order.create(items, customerEmail);
+    public Order createOrder(List<OrderItem> items, String customerEmail, UUID userId) {
+        // userId should be provided by the request (or security context in future)
+        Order order = Order.create(items, customerEmail, userId);
         orderRepository.save(order);
 
         // Convert domain objects → DTOs

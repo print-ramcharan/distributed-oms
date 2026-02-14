@@ -1,7 +1,7 @@
 package com.oms.inventoryservice.service;
 
-import com.oms.inventoryservice.domain.Inventory;
-import com.oms.inventoryservice.domain.InventoryReservation;
+import com.oms.inventoryservice.domain.model.Inventory;
+import com.oms.inventoryservice.domain.model.InventoryReservation;
 import com.oms.inventoryservice.repository.InventoryRepository;
 import com.oms.inventoryservice.repository.InventoryReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +48,7 @@ class InventoryServiceTest {
     @Test
     void shouldReserveInventorySuccessfullyWhenStockAvailable() {
         // Given
-        Inventory inventory = new Inventory(productId, 100, 0);
+        Inventory inventory = new Inventory(productId, 100);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
         when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(reservationRepository.save(any(InventoryReservation.class)))
@@ -71,12 +71,12 @@ class InventoryServiceTest {
     @Test
     void shouldThrowExceptionWhenInsufficientStock() {
         // Given
-        Inventory inventory = new Inventory(productId, 3, 0);
+        Inventory inventory = new Inventory(productId, 3);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
 
         // When/Then
         assertThatThrownBy(() -> inventoryService.reserveInventory(orderId, productId, quantity))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(Inventory.InsufficientStockException.class)
                 .hasMessageContaining("Insufficient stock");
     }
 
@@ -94,7 +94,12 @@ class InventoryServiceTest {
     @Test
     void shouldReleaseReservationSuccessfully() {
         // Given
-        Inventory inventory = new Inventory(productId, 95, 5);
+        Inventory inventory = new Inventory(productId, 100);
+        // Simulate reserved state: 95 available, 5 reserved
+        inventory.confirmReservation(0); // Hack or setter? Model has setters.
+        inventory.setAvailableQuantity(95);
+        inventory.setReservedQuantity(5);
+
         InventoryReservation reservation = new InventoryReservation(orderId, productId, quantity);
         when(reservationRepository.findByOrderId(orderId)).thenReturn(Optional.of(reservation));
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
@@ -107,7 +112,10 @@ class InventoryServiceTest {
         assertThat(inventory.getAvailableQuantity()).isEqualTo(100);
         assertThat(inventory.getReservedQuantity()).isEqualTo(0);
         verify(inventoryRepository).save(inventory);
-        verify(reservationRepository).delete(reservation);
+
+        // Changed: Verification of soft delete (status update)
+        assertThat(reservation.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.RELEASED);
+        verify(reservationRepository).save(reservation);
     }
 
     @Test
@@ -125,7 +133,10 @@ class InventoryServiceTest {
     void shouldConfirmReservationSuccessfully() {
         // Given
         InventoryReservation reservation = new InventoryReservation(orderId, productId, quantity);
-        Inventory inventory = new Inventory(productId, 95, 5);
+        Inventory inventory = new Inventory(productId, 100);
+        inventory.setAvailableQuantity(95);
+        inventory.setReservedQuantity(5);
+
         when(reservationRepository.findByOrderId(orderId)).thenReturn(Optional.of(reservation));
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
         when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -134,8 +145,9 @@ class InventoryServiceTest {
         inventoryService.confirmReservation(orderId);
 
         // Then
-        assertThat(reservation.isConfirmed()).isTrue();
+        assertThat(reservation.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.CONFIRMED);
         assertThat(inventory.getReservedQuantity()).isEqualTo(0);
+        assertThat(inventory.getTotalQuantity()).isEqualTo(95); // 100 - 5
         verify(reservationRepository).save(reservation);
         verify(inventoryRepository).save(inventory);
     }
@@ -158,7 +170,7 @@ class InventoryServiceTest {
     @Test
     void shouldCheckInventoryAvailability() {
         // Given
-        Inventory inventory = new Inventory(productId, 100, 0);
+        Inventory inventory = new Inventory(productId, 100);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
 
         // When
@@ -171,7 +183,7 @@ class InventoryServiceTest {
     @Test
     void shouldReturnFalseWhenInventoryNotAvailable() {
         // Given
-        Inventory inventory = new Inventory(productId, 3, 0);
+        Inventory inventory = new Inventory(productId, 3);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
 
         // When
@@ -179,5 +191,37 @@ class InventoryServiceTest {
 
         // Then
         assertThat(available).isFalse();
+    }
+
+    @Test
+    void shouldReleaseExpiredReservations() {
+        // Given
+        InventoryReservation expiredReservation = new InventoryReservation(orderId, productId, quantity);
+        // We can't easily mock Instant.now() inside the service without a Clock bean,
+        // but we can mock the repository return.
+
+        Inventory inventory = new Inventory(productId, 100);
+        inventory.confirmReservation(0);
+        inventory.setAvailableQuantity(95);
+        inventory.setReservedQuantity(5);
+
+        when(reservationRepository.findByStatusAndExpiresAtBefore(
+                eq(InventoryReservation.ReservationStatus.RESERVED), any()))
+                .thenReturn(java.util.List.of(expiredReservation));
+
+        when(reservationRepository.findByOrderId(orderId)).thenReturn(Optional.of(expiredReservation));
+        when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
+        when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        inventoryService.releaseExpiredReservations();
+
+        // Then
+        InventoryReservation released = expiredReservation; // It's the same object reference
+        assertThat(released.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.RELEASED);
+        verify(reservationRepository)
+                .findByStatusAndExpiresAtBefore(eq(InventoryReservation.ReservationStatus.RESERVED), any());
+        verify(inventoryRepository).save(inventory);
+        verify(reservationRepository, atLeastOnce()).save(any(InventoryReservation.class));
     }
 }

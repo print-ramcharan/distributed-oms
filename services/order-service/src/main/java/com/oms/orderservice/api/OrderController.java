@@ -96,7 +96,7 @@ public class OrderController {
                     .map(this::toDomain)
                     .collect(Collectors.toList());
 
-            Order order = orderCommandService.createOrder(items, request.getCustomerEmail());
+            Order order = orderCommandService.createOrder(items, request.getCustomerEmail(), request.getUserId());
 
             CreateOrderResponse response = new CreateOrderResponse(order.getId(), order.getStatus());
 
