@@ -1,20 +1,29 @@
 package com.oms.paymentservice.service;
 
+import com.oms.eventcontracts.events.PaymentCompletedEvent;
+import com.oms.eventcontracts.events.PaymentRefundedEvent;
 import com.oms.paymentservice.domain.Payment;
 import com.oms.paymentservice.domain.PaymentStatus;
 import com.oms.paymentservice.repository.PaymentRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class PaymentService {
 
     @Autowired
     private PaymentRepository paymentRepository;
+
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Transactional
     public Payment createPayment(UUID orderId, BigDecimal amount) {
@@ -32,7 +41,19 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
         payment.markCompleted();
-        return paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        // Publish PaymentCompletedEvent to Kafka
+        PaymentCompletedEvent event = new PaymentCompletedEvent(
+                savedPayment.getOrderId(),
+                savedPayment.getId(),
+                savedPayment.getAmount(),
+                Instant.now());
+        kafkaTemplate.send("payment.completed", orderId.toString(), event);
+        log.info("✅ Published PaymentCompletedEvent | orderId={} | paymentId={}",
+                orderId, savedPayment.getId());
+
+        return savedPayment;
     }
 
     @Transactional
@@ -41,7 +62,20 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
         payment.markRefunded();
-        return paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        // Publish PaymentRefundedEvent to Kafka
+        PaymentRefundedEvent event = new PaymentRefundedEvent(
+                savedPayment.getOrderId(),
+                savedPayment.getId(),
+                savedPayment.getAmount(),
+                "Refunded due to saga failure",
+                Instant.now());
+        kafkaTemplate.send("payment.refunded", orderId.toString(), event);
+        log.info("💰 Published PaymentRefundedEvent | orderId={} | paymentId={}",
+                orderId, savedPayment.getId());
+
+        return savedPayment;
     }
 
     @Transactional
