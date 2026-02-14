@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class CreateOrderRequest {
@@ -15,5 +16,7 @@ public class CreateOrderRequest {
 
     @NotEmpty(message = "customerEmail must not be empty")
     private String customerEmail;
+
+    private UUID userId;
 
 }

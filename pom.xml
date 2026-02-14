@@ -7,6 +7,7 @@
     <groupId>org.example</groupId>
     <artifactId>distributed-oms</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -14,4 +15,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     
+    <modules>
+        <module>services/event-contracts</module>
+        <module>services/gateway-service</module>
+        <module>services/order-service</module>
+        <module>services/inventory-service</module>
+        <module>services/payment-service</module>
+        <module>services/notification-service</module>
+        <module>services/saga-orchestrator</module>
+    </modules>
 </project>

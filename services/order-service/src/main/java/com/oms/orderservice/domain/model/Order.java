@@ -55,12 +55,23 @@ public class Order implements Serializable {
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status")
+    private PaymentStatus paymentStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "inventory_status")
+    private InventoryStatus inventoryStatus;
+
     protected Order() {
     }
 
     /* ========= Factory ========= */
 
-    public static Order create(List<OrderItem> rawItems, String customerEmail) {
+    public static Order create(List<OrderItem> rawItems, String customerEmail, UUID userId) {
         if (rawItems == null || rawItems.isEmpty()) {
             throw new IllegalArgumentException("Order must contain at least one item");
         }
@@ -70,9 +81,13 @@ public class Order implements Serializable {
 
         Order order = new Order();
         order.customerEmail = customerEmail;
+        order.userId = userId;
         order.createdAt = Instant.now();
         order.status = OrderStatus.PENDING;
         order.progress = OrderProgress.ORDER_ACCEPTED;
+        order.paymentStatus = PaymentStatus.PENDING;
+        order.inventoryStatus = InventoryStatus.PENDING;
+
         for (OrderItem item : rawItems) {
             order.addItem(item);
         }
@@ -116,7 +131,10 @@ public class Order implements Serializable {
         // 4️⃣ Apply progress
         this.progress = next;
 
-        // 5️⃣ Derive status (single authority)
+        // 5️⃣ Update sub-statuses based on progress
+        updateSubStatuses(next);
+
+        // 6️⃣ Derive status (single authority)
         switch (next) {
             case ORDER_COMPLETED -> {
                 this.status = OrderStatus.COMPLETED;
@@ -130,4 +148,27 @@ public class Order implements Serializable {
         }
     }
 
+    private void updateSubStatuses(OrderProgress progress) {
+        switch (progress) {
+            case AWAITING_STOCK_CONFIRMATION -> {
+                // If we moved to awaiting stock, it means payment was successful
+                this.paymentStatus = PaymentStatus.COMPLETED;
+            }
+            case ORDER_COMPLETED -> {
+                // Determine final states
+                if (this.paymentStatus == PaymentStatus.PENDING)
+                    this.paymentStatus = PaymentStatus.COMPLETED;
+                this.inventoryStatus = InventoryStatus.RESERVED; // Final success state for inventory
+            }
+            case ORDER_FAILED -> {
+                // In a real scenario, we'd need to know WHY it failed to set specific
+                // sub-statuses.
+                // For now, we leave them as is or set to FAILED if they were pending.
+                if (this.paymentStatus == PaymentStatus.PENDING)
+                    this.paymentStatus = PaymentStatus.FAILED;
+                if (this.inventoryStatus == InventoryStatus.PENDING)
+                    this.inventoryStatus = InventoryStatus.FAILED;
+            }
+        }
+    }
 }

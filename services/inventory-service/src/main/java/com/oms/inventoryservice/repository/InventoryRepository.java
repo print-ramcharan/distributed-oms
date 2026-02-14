@@ -1,6 +1,6 @@
 package com.oms.inventoryservice.repository;
 
-import com.oms.inventoryservice.domain.Inventory;
+import com.oms.inventoryservice.domain.model.Inventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

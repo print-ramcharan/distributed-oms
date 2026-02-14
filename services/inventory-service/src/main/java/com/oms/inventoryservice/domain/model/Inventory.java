@@ -87,6 +87,15 @@ public class Inventory {
         this.updatedAt = Instant.now();
     }
 
+    public void releaseStock(int quantity) {
+        if (quantity > reservedQuantity) {
+            throw new IllegalArgumentException("Cannot release more than reserved quantity");
+        }
+        this.reservedQuantity -= quantity;
+        this.availableQuantity += quantity;
+        this.updatedAt = Instant.now();
+    }
+
     // Domain exception
     public static class InsufficientStockException extends RuntimeException {
         public InsufficientStockException(String message) {
