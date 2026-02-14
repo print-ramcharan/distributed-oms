@@ -28,6 +28,15 @@ public class Payment {
     @Column(nullable = false)
     private PaymentStatus status;
 
+    @Column(name = "transaction_id")
+    private String transactionId;
+
+    @Column(name = "idempotency_key", unique = true)
+    private String idempotencyKey;
+
+    @Column(name = "payment_method")
+    private String paymentMethod;
+
     @Column(nullable = false)
     private String currency;
 
@@ -37,13 +46,22 @@ public class Payment {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Payment(UUID orderId, BigDecimal amount) {
+    public Payment(UUID orderId, BigDecimal amount, String transactionId, String idempotencyKey, String paymentMethod) {
         this.orderId = orderId;
         this.amount = amount;
+        this.transactionId = transactionId;
+        this.idempotencyKey = idempotencyKey;
+        this.paymentMethod = paymentMethod;
         this.status = PaymentStatus.PENDING;
         this.currency = "USD"; // Default currency
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
+    }
+
+    // Constructor for backward compatibility (defaults new fields to
+    // null/generated)
+    public Payment(UUID orderId, BigDecimal amount) {
+        this(orderId, amount, UUID.randomUUID().toString(), null, "UNKNOWN");
     }
 
     public void markCompleted() {

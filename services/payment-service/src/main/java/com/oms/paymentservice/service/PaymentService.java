@@ -26,13 +26,27 @@ public class PaymentService {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Transactional
-    public Payment createPayment(UUID orderId, BigDecimal amount) {
-        // Idempotency: check if payment already exists
+    public Payment createPayment(UUID orderId, BigDecimal amount, String idempotencyKey) {
+        // Idempotency: check if payment already exists by orderId (business key) or
+        // idempotencyKey
+        if (idempotencyKey != null && paymentRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
+            return paymentRepository.findByIdempotencyKey(idempotencyKey).get();
+        }
+
         return paymentRepository.findByOrderId(orderId)
                 .orElseGet(() -> {
-                    Payment payment = new Payment(orderId, amount);
+                    // Generate a transaction ID for the new payment
+                    String transactionId = UUID.randomUUID().toString();
+                    // Default payment method for now, can be passed in later
+                    String paymentMethod = "CREDIT_CARD";
+
+                    Payment payment = new Payment(orderId, amount, transactionId, idempotencyKey, paymentMethod);
                     return paymentRepository.save(payment);
                 });
+    }
+
+    public boolean existsByIdempotencyKey(String idempotencyKey) {
+        return idempotencyKey != null && paymentRepository.findByIdempotencyKey(idempotencyKey).isPresent();
     }
 
     @Transactional
@@ -91,7 +105,7 @@ public class PaymentService {
 
     @Transactional
     public Payment createPendingPayment(UUID orderId, BigDecimal amount) {
-        return createPayment(orderId, amount);
+        return createPayment(orderId, amount, null); // Backward compatibility: no idempotency key
     }
 
     @Transactional
