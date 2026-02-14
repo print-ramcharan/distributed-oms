@@ -47,7 +47,7 @@ class PaymentServiceTest {
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        Payment payment = paymentService.createPayment(orderId, amount);
+        Payment payment = paymentService.createPayment(orderId, amount, "test-idempotency-key");
 
         // Then
         assertThat(payment).isNotNull();
@@ -61,10 +61,10 @@ class PaymentServiceTest {
     void shouldReturnExistingPaymentIfAlreadyExists() {
         // Given
         Payment existingPayment = new Payment(orderId, amount);
-        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(existingPayment));
+        when(paymentRepository.findByIdempotencyKey("test-idempotency-key")).thenReturn(Optional.of(existingPayment));
 
         // When
-        Payment payment = paymentService.createPayment(orderId, amount);
+        Payment payment = paymentService.createPayment(orderId, amount, "test-idempotency-key");
 
         // Then
         assertThat(payment).isEqualTo(existingPayment);
