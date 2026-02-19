@@ -13,6 +13,10 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import java.util.Collections;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -47,13 +51,13 @@ public class SecurityConfig {
                         .header("X-User-Id", userId)
                         .build();
 
-                // Continue with authenticated principal (mocked for WebFlux)
-                // In a real app we'd create an Authentication object here.
-                // For Gateway forwarding, header mutation is the key part.
-                return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                // Create Authentication object for Spring Security
+                Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+
+                // Continue chain with mutated request AND security context
+                return chain.filter(exchange.mutate().request(mutatedRequest).build())
+                        .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
             }
-            // If no token or invalid, let Spring Security handle it (will be 401 if path
-            // protected)
             return chain.filter(exchange);
         };
     }
