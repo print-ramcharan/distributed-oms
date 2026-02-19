@@ -39,6 +39,7 @@ public class RateLimiterConfig {
      * Falls back to IP if header is absent (e.g. pre-auth traffic).
      */
     @Bean
+    @org.springframework.context.annotation.Primary
     public KeyResolver userKeyResolver() {
         return exchange -> {
             String userId = exchange.getRequest().getHeaders().getFirst("X-User-Id");
