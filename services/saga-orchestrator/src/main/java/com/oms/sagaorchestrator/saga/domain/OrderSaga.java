@@ -49,7 +49,7 @@ public class OrderSaga {
     }
 
 
-    /* ===================== PAYMENT ===================== */
+    
 
     public void markPaymentRequested() {
         assertState(SagaState.STARTED);
@@ -66,7 +66,7 @@ public class OrderSaga {
         transitionTo(SagaState.PAYMENT_FAILED);
     }
 
-    /* ===================== INVENTORY ===================== */
+    
 
     public void markInventoryRequested() {
         assertState(SagaState.PAYMENT_COMPLETED);
@@ -83,7 +83,7 @@ public class OrderSaga {
         transitionTo(SagaState.INVENTORY_FAILED);
     }
 
-    /* ===================== COMPENSATION ===================== */
+    
 
     public void markCompensating() {
         if (state != SagaState.INVENTORY_FAILED &&
@@ -100,7 +100,7 @@ public class OrderSaga {
         transitionTo(SagaState.COMPENSATED);
     }
 
-    /* ===================== TERMINAL ===================== */
+    
 
     public void markCompleted() {
         assertState(SagaState.INVENTORY_RESERVED);
@@ -117,7 +117,7 @@ public class OrderSaga {
         transitionTo(SagaState.FAILED);
     }
 
-    /* ===================== INTERNAL ===================== */
+    
 
     private void assertState(SagaState expected) {
         if (this.state != expected) {

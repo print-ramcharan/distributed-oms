@@ -35,7 +35,7 @@ public class OrderItem implements Serializable {
     private BigDecimal price;
 
     protected OrderItem() {
-        // JPA only
+        
     }
 
     private OrderItem(String productId, int quantity, BigDecimal price) {
@@ -51,19 +51,19 @@ public class OrderItem implements Serializable {
         this.price = price;
     }
 
-    /* ========= Factory ========= */
+    
 
     public static OrderItem create(String productId, int quantity, BigDecimal price) {
         return new OrderItem(productId, quantity, price);
     }
 
-    /* ========= Internal lifecycle ========= */
+    
 
     void attachTo(Order order) {
         this.order = order;
     }
 
-    /* ========= Domain logic ========= */
+    
 
     public BigDecimal totalPrice() {
         return price.multiply(BigDecimal.valueOf(quantity));

@@ -41,7 +41,7 @@ public class KafkaInventoryEventPublisher implements InventoryEventPublisher {
             var result = kafkaTemplate.send(
                     inventoryUnavailableTopic,
                     event.getOrderId(),
-                    event).get(); // BLOCKING for debug
+                    event).get(); 
             log.info("Successfully published InventoryUnavailableEvent: {}", result.getRecordMetadata());
         } catch (Exception e) {
             log.error("FATAL ERROR publishing InventoryUnavailableEvent", e);

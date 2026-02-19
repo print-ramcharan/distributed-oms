@@ -18,19 +18,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Core payment service with retry + recovery.
- *
- * @Retryable on processPayment: retries up to 3 times on any Exception
- *            with exponential backoff (1s → 2s → 4s). This handles transient DB
- *            connection issues or brief timeouts without losing the payment.
- *
- * @Recover fires after all retries are exhausted. Instead of propagating
- *          the exception (which would crash the Kafka consumer and cause
- *          infinite
- *          redelivery), we mark the payment as FAILED and let the saga
- *          compensate.
- */
+
 @Service
 @Slf4j
 public class PaymentService {
@@ -59,11 +47,7 @@ public class PaymentService {
         return idempotencyKey != null && paymentRepository.findByIdempotencyKey(idempotencyKey).isPresent();
     }
 
-    /**
-     * Processes a payment with automatic retry on transient failures.
-     * Attempts: 1s delay → 2s → 4s (3 total attempts, exponential backoff).
-     * On exhaustion → {@link #recoverProcessPayment(Exception, UUID)} fires.
-     */
+    
     @Transactional
     @Retryable(retryFor = {
             Exception.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2, maxDelay = 10000))
@@ -89,11 +73,7 @@ public class PaymentService {
         return savedPayment;
     }
 
-    /**
-     * Recovery method — called after all retries of processPayment are exhausted.
-     * Marks the payment FAILED and publishes payment.failed event so the saga
-     * orchestrator triggers its compensation flow (cancel order, notify customer).
-     */
+    
     @Recover
     @Transactional
     public Payment recoverProcessPayment(Exception ex, UUID orderId) {
@@ -107,7 +87,7 @@ public class PaymentService {
             log.warn("⚠️ Payment marked FAILED after retry exhaustion | orderId={}", orderId);
         }
 
-        // Let the saga handle compensation — don't rethrow
+        
         return payment;
     }
 
@@ -140,7 +120,7 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
-    // ========== Backward-compatible aliases ==========
+    
 
     @Transactional
     public Payment createPendingPayment(UUID orderId, BigDecimal amount) {

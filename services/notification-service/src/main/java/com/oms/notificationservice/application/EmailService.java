@@ -33,9 +33,9 @@ public class EmailService {
             log.info("Email sent successfully to {}", to);
         } catch (Exception e) {
             log.error("Failed to send email to {}", to, e);
-            // We don't verify exception here because notification failure shouldn't
-            // rollback logic,
-            // but in a real system we might want a DLQ or retry for notifications.
+            
+            
+            
         }
     }
 }

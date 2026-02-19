@@ -11,16 +11,16 @@ public class OrderCreatedEvent extends BaseEvent {
     private BigDecimal amount;
     private List<OrderItemDTO> items;
 
-    // V2 fields
+    
     private String currency = "USD";
     private BigDecimal discount = BigDecimal.ZERO;
 
-    // Jackson
+    
     public OrderCreatedEvent() {
         super(1);
     }
 
-    // V1 Constructor (Legacy) - defaults to v1, USD, 0 discount
+    
     public OrderCreatedEvent(UUID orderId, String customerEmail, BigDecimal amount, List<OrderItemDTO> items) {
         super(1);
         this.orderId = orderId;
@@ -29,7 +29,7 @@ public class OrderCreatedEvent extends BaseEvent {
         this.items = items;
     }
 
-    // V2 Constructor
+    
     public OrderCreatedEvent(UUID orderId, String customerEmail, BigDecimal amount, List<OrderItemDTO> items,
             String currency, BigDecimal discount) {
         super(2);

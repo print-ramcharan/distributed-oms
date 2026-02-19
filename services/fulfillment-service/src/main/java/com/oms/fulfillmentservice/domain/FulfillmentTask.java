@@ -7,11 +7,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Represents a fulfillment task created when inventory is successfully
- * reserved.
- * Tracks the lifecycle: INITIATED → DISPATCHED → DELIVERED (or FAILED).
- */
+
 @Entity
 @Table(name = "fulfillment_tasks")
 @Getter

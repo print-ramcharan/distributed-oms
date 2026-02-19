@@ -53,13 +53,13 @@ public class Payment {
         this.idempotencyKey = idempotencyKey;
         this.paymentMethod = paymentMethod;
         this.status = PaymentStatus.PENDING;
-        this.currency = "USD"; // Default currency
+        this.currency = "USD"; 
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
 
-    // Constructor for backward compatibility (defaults new fields to
-    // null/generated)
+    
+    
     public Payment(UUID orderId, BigDecimal amount) {
         this(orderId, amount, UUID.randomUUID().toString(), null, "UNKNOWN");
     }
@@ -90,7 +90,7 @@ public class Payment {
         }
     }
 
-    // ========== Backward-compatible methods ==========
+    
 
     public void refund(BigDecimal amount) {
         markRefunded();

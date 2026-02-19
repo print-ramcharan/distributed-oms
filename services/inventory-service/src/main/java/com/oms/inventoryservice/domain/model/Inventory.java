@@ -16,7 +16,7 @@ import java.time.Instant;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public class Inventory {
 
-    // Aggregate identity: one inventory row per product
+    
     @Id
     private String productId;
 
@@ -96,7 +96,7 @@ public class Inventory {
         this.updatedAt = Instant.now();
     }
 
-    // Domain exception
+    
     public static class InsufficientStockException extends RuntimeException {
         public InsufficientStockException(String message) {
             super(message);

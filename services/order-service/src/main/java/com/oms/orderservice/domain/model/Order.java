@@ -69,7 +69,7 @@ public class Order implements Serializable {
     protected Order() {
     }
 
-    /* ========= Factory ========= */
+    
 
     public static Order create(List<OrderItem> rawItems, String customerEmail, UUID userId) {
         if (rawItems == null || rawItems.isEmpty()) {
@@ -96,7 +96,7 @@ public class Order implements Serializable {
         return order;
     }
 
-    /* ========= Domain behavior ========= */
+    
 
     private void addItem(OrderItem item) {
         item.attachTo(this);
@@ -111,30 +111,30 @@ public class Order implements Serializable {
 
     public void advanceProgress(OrderProgress next) {
 
-        // 1️⃣ Idempotency
+        
         if (this.progress == next) {
             return;
         }
 
-        // 2️⃣ Terminal guard
+        
         if (this.progress == OrderProgress.ORDER_COMPLETED
                 || this.progress == OrderProgress.ORDER_FAILED) {
             throw new IllegalStateException("Order is in terminal state");
         }
 
-        // 3️⃣ Validate transition
+        
         if (!OrderProgressTransitions.isCommandAllowed(this.progress, next)) {
             throw new IllegalStateException(
                     "Illegal transition: " + this.progress + " → " + next);
         }
 
-        // 4️⃣ Apply progress
+        
         this.progress = next;
 
-        // 5️⃣ Update sub-statuses based on progress
+        
         updateSubStatuses(next);
 
-        // 6️⃣ Derive status (single authority)
+        
         switch (next) {
             case ORDER_COMPLETED -> {
                 this.status = OrderStatus.COMPLETED;
@@ -151,19 +151,19 @@ public class Order implements Serializable {
     private void updateSubStatuses(OrderProgress progress) {
         switch (progress) {
             case AWAITING_STOCK_CONFIRMATION -> {
-                // If we moved to awaiting stock, it means payment was successful
+                
                 this.paymentStatus = PaymentStatus.COMPLETED;
             }
             case ORDER_COMPLETED -> {
-                // Determine final states
+                
                 if (this.paymentStatus == PaymentStatus.PENDING)
                     this.paymentStatus = PaymentStatus.COMPLETED;
-                this.inventoryStatus = InventoryStatus.RESERVED; // Final success state for inventory
+                this.inventoryStatus = InventoryStatus.RESERVED; 
             }
             case ORDER_FAILED -> {
-                // In a real scenario, we'd need to know WHY it failed to set specific
-                // sub-statuses.
-                // For now, we leave them as is or set to FAILED if they were pending.
+                
+                
+                
                 if (this.paymentStatus == PaymentStatus.PENDING)
                     this.paymentStatus = PaymentStatus.FAILED;
                 if (this.inventoryStatus == InventoryStatus.PENDING)

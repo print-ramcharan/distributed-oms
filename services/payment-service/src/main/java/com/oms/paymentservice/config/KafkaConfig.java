@@ -149,7 +149,7 @@ public class KafkaConfig {
                 return recoverer;
         }
 
-        // ===================== REFUND PAYMENT CONSUMER =====================
+        
 
         @Bean
         public ConsumerFactory<String, RefundPaymentCommand> refundConsumerFactory() {

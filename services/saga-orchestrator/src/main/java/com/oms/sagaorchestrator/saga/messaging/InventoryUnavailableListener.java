@@ -34,7 +34,7 @@ public class InventoryUnavailableListener {
                         log.info("🔴 InventoryUnavailableEvent received | orderId={} | reason={}",
                                         orderId, event.getReason());
 
-                        // 1️⃣ Load saga
+                        
                         OrderSaga saga = sagaRepository.findById(orderId).orElse(null);
                         if (saga == null) {
                                 log.warn("⚠️  Saga not found for order {}, ignoring event", orderId);
@@ -42,14 +42,14 @@ public class InventoryUnavailableListener {
                         }
                         log.info("✓ Saga loaded | currentState={}", saga.getState());
 
-                        // 2️⃣ Idempotency guard
+                        
                         if (saga.getState() != SagaState.INVENTORY_REQUESTED) {
                                 log.warn("⚠️  Ignoring event - saga in wrong state | orderId={} | currentState={} | expectedState=INVENTORY_REQUESTED",
                                                 orderId, saga.getState());
                                 return;
                         }
 
-                        // 3️⃣ Transition: INVENTORY_REQUESTED → INVENTORY_FAILED → COMPENSATING
+                        
                         log.info("→ Transitioning saga to INVENTORY_FAILED...");
                         saga.markInventoryFailed();
                         sagaRepository.save(saga);
@@ -60,7 +60,7 @@ public class InventoryUnavailableListener {
                         sagaRepository.save(saga);
                         log.info("✓ Saga transitioned to COMPENSATING");
 
-                        // 4️⃣ Send refund command (synchronous)
+                        
                         log.info("→ Sending RefundPaymentCommand...");
                         var refundCommand = new RefundPaymentCommand(
                                         orderId,
@@ -71,12 +71,12 @@ public class InventoryUnavailableListener {
                         var refundResult = kafkaTemplate.send(
                                         "payment.refund.command",
                                         orderId.toString(),
-                                        refundCommand).get(); // Synchronous send
+                                        refundCommand).get(); 
 
                         log.info("✓ RefundPaymentCommand sent successfully | recordMetadata={}",
                                         refundResult.getRecordMetadata());
 
-                        // 5️⃣ Send order failure command (synchronous)
+                        
                         log.info("→ Sending AdvanceOrderProgressCommand(ORDER_FAILED)...");
                         var orderFailCommand = new AdvanceOrderProgressCommand(
                                         orderId,
@@ -85,7 +85,7 @@ public class InventoryUnavailableListener {
                         var orderFailResult = kafkaTemplate.send(
                                         "order.command.advance-progress",
                                         orderId.toString(),
-                                        orderFailCommand).get(); // Synchronous send
+                                        orderFailCommand).get(); 
 
                         log.info("✓ AdvanceOrderProgressCommand sent successfully | recordMetadata={}",
                                         orderFailResult.getRecordMetadata());

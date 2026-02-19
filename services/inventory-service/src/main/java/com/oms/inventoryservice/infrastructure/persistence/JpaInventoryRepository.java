@@ -27,13 +27,13 @@ public class JpaInventoryRepository implements InventoryRepository {
 
     @Override
     public List<Inventory> findAllByProductIdIn(List<String> productIds) {
-        // Delegates to the magic JPA method we defined in step 1
+        
         return springRepo.findByProductIdIn(productIds);
     }
 
     @Override
     public void saveAll(Collection<Inventory> values) {
-        // JpaRepository.saveAll() accepts Iterables, so Collection works fine
+        
         springRepo.saveAll(values);
     }
 }

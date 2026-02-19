@@ -9,18 +9,18 @@ public class ReserveInventoryCommand {
     private List<LineItem> items;
     private Instant requestedAt;
 
-    // 1. Default Constructor
+    
     public ReserveInventoryCommand() {
     }
 
-    // 2. All-Args Constructor
+    
     public ReserveInventoryCommand(String orderId, List<LineItem> items, Instant requestedAt) {
         this.orderId = orderId;
         this.items = items;
         this.requestedAt = requestedAt;
     }
 
-    // 3. Getters
+    
     public String getOrderId() {
         return orderId;
     }
@@ -33,9 +33,9 @@ public class ReserveInventoryCommand {
         return requestedAt;
     }
 
-    // =================================================================
-    // Inner Static Class for the Items (Simple DTO)
-    // =================================================================
+    
+    
+    
     public static class LineItem {
         private String productId;
         private int quantity;

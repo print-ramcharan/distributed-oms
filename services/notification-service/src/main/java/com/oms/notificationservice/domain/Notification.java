@@ -26,7 +26,7 @@ public class Notification {
     @Column(nullable = false)
     private String subject;
 
-    private String type; // e.g., ORDER_CREATED
+    private String type; 
 
     private Instant sentAt;
 

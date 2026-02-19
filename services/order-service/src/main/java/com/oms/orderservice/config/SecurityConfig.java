@@ -15,9 +15,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Trust boundary: We assume Gateway has already authenticated the user
-                        // and passed X-User-Id header.
-                        // However, we still need to allow traffic.
+                        
+                        
+                        
                         .anyRequest().permitAll());
         return http.build();
     }

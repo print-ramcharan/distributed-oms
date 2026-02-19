@@ -16,16 +16,16 @@ public class PaymentServiceApplication {
         SpringApplication.run(PaymentServiceApplication.class, args);
     }
 
-//    @Bean
-//    CommandLineRunner testPayment(PaymentService paymentService){
-//        return args -> {
-//            UUID orderId = UUID.fromString("11111111-1111-1111-1111-111111111111");
-//
-//            paymentService.createPendingPayment(orderId, new BigDecimal("499.99"));
-//            paymentService.createPendingPayment(orderId, new BigDecimal("499.99"));
-//            System.out.println("Payment creation attempted twice for same orderId");
-//
-//        };
-//    }
+
+
+
+
+
+
+
+
+
+
+
 }
 

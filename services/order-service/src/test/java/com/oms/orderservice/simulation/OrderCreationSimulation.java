@@ -10,13 +10,13 @@ import static io.gatling.javaapi.http.HttpDsl.*;
 
 public class OrderCreationSimulation extends Simulation {
 
-    // 1. HTTP Protocol Configuration
+    
     HttpProtocolBuilder httpProtocol = http
-            .baseUrl("http://localhost:8080") // Gateway URL
+            .baseUrl("http://localhost:8080") 
             .acceptHeader("application/json")
             .contentTypeHeader("application/json");
 
-    // 2. Scenario Definition
+    
     ScenarioBuilder scn = scenario("Order Creation Load Test")
             .exec(
                     http("Create Order")
@@ -34,13 +34,13 @@ public class OrderCreationSimulation extends Simulation {
                             .asJson()
                             .check(status().is(200)));
 
-    // 3. Load Injection Profile
+    
     {
         setUp(
                 scn.injectOpen(
-                        nothingFor(2), // warmup
-                        atOnceUsers(10), // burst
-                        rampUsers(50).during(Duration.ofSeconds(10)) // ramp up
+                        nothingFor(2), 
+                        atOnceUsers(10), 
+                        rampUsers(50).during(Duration.ofSeconds(10)) 
                 )).protocols(httpProtocol);
     }
 }

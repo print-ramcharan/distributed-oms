@@ -9,7 +9,7 @@ public class InventoryReserveRequestedEvent {
     private int quantity;
     private Instant requestedAt;
 
-    // Required for Jackson
+    
     public InventoryReserveRequestedEvent() {}
 
     public InventoryReserveRequestedEvent(

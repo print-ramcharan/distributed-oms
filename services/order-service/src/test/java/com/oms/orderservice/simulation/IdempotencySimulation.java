@@ -16,7 +16,7 @@ public class IdempotencySimulation extends Simulation {
             .acceptHeader("application/json")
             .contentTypeHeader("application/json");
 
-    // Scenario: Send SAME request twice with SAME Idempotency-Key
+    
     ScenarioBuilder scn = scenario("Idempotency Load Test")
             .exec(session -> session.set("idempotencyKey", UUID.randomUUID().toString()))
             .exec(
@@ -36,7 +36,7 @@ public class IdempotencySimulation extends Simulation {
                                     { "customerEmail": "idempotent@example.com", "items": [] }
                                     """)).asJson()
                             .check(status().is(200))
-            // Verify it's not a 409 or 500, but a clean 200 (cached response)
+            
             );
 
     {

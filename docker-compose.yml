@@ -19,10 +19,8 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      # Internal (Docker ↔ Docker)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
 
-      # External (Host ↔ Kafka)
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
 
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
@@ -234,8 +232,8 @@ services:
     image: mailhog/mailhog
     container_name: mailhog
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # HTTP UI
+- "1025:1025"
+- "8025:8025"
 
   fulfillment-db:
     image: postgres:15

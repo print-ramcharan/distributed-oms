@@ -32,9 +32,9 @@ public class GlobalExceptionHandler {
                              .body(ApiErrorResponse.of(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), null));
     }
 
-//    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<?> handleGeneric(Exception ex){
-//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                             .body(ApiErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", null));
-//    }
+
+
+
+
+
 }

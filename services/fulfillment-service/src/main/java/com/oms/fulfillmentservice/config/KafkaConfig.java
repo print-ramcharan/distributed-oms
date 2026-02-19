@@ -24,7 +24,7 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-    /* ─── PRODUCER ─── */
+    
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
@@ -42,7 +42,7 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
-    /* ─── CONSUMER (inventory.reserved) ─── */
+    
 
     @Bean
     public ConsumerFactory<String, InventoryReservedEvent> inventoryReservedConsumerFactory() {

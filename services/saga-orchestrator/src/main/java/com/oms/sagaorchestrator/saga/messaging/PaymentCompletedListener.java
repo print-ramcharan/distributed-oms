@@ -40,7 +40,7 @@ public class PaymentCompletedListener {
 
         if (saga.getState() != SagaState.PAYMENT_REQUESTED) return;
 
-        // 1. Update State
+        
         saga.markPaymentCompleted();
         saga.markInventoryRequested();
         sagaRepository.save(saga);
@@ -49,13 +49,13 @@ public class PaymentCompletedListener {
                 .map(item -> new ReserveInventoryCommand.LineItem(item.getProductId(), item.getQuantity()))
                 .toList();
 
-// Create ONE command
+
         ReserveInventoryCommand command = new ReserveInventoryCommand(
                 orderId.toString(),
                 commandItems,
                 Instant.now()
         );
-        // 3. Send ONE message
+        
 
         kafkaTemplate.send(
                 "order.command.advance-progress",

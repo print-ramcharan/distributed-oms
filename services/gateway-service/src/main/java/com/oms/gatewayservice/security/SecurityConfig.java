@@ -46,15 +46,15 @@ public class SecurityConfig {
             if (token != null && jwtUtil.validateToken(token)) {
                 String userId = jwtUtil.extractUserId(token);
 
-                // Mutate request to add X-User-Id header (Trust Boundary)
+                
                 ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                         .header("X-User-Id", userId)
                         .build();
 
-                // Create Authentication object for Spring Security
+                
                 Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
 
-                // Continue chain with mutated request AND security context
+                
                 return chain.filter(exchange.mutate().request(mutatedRequest).build())
                         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
             }

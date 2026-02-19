@@ -25,7 +25,7 @@ public class ReserveInventoryCommandConsumer {
 
         log.info("Batch ReserveInventoryCommand received | orderId={} | itemsCount={}",
                 command.getOrderId(),
-                command.getItems().size()); // 👈 Log the batch size
+                command.getItems().size()); 
 
         reserveStockUseCase.execute(
                 UUID.fromString(command.getOrderId()),
@@ -34,37 +34,37 @@ public class ReserveInventoryCommandConsumer {
     }
 }
 
-//@Component
-//@RequiredArgsConstructor
-//@Slf4j
-//public class ReserveInventoryCommandConsumer {
-//
-//    private final ReserveStockUseCase reserveStockUseCase;
-//
-//    @KafkaListener(
-//            topics = "inventory.reserve.command",
-//            groupId = "inventory-service"
-//    )
-//    public void handle(ReserveInventoryCommand command) {
-//
-//        log.info(
-//                "ReserveInventoryCommand | orderId={} | productId={} | qty={}",
-//                command.getOrderId(),
-//                command.getProductId(),
-//                command.getQuantity()
-//        );
-//
-//        // 🔥 The use-case already handles:
-//        // - Idempotency
-//        // - Product not found
-//        // - Insufficient stock
-//        // - Publishing InventoryReserved / InventoryUnavailable events
-//        // - NO exceptions for business failures
-//        reserveStockUseCase.execute(
-//                command.getOrderId(),
-//                command.getProductId(),
-//                command.getQuantity()
-//        );
-//    }
-//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

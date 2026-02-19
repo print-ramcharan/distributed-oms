@@ -42,11 +42,11 @@ public class InventoryReservedListener {
             }
             saga.markInventoryReserved();
 
-            // 1. Update State
+            
             saga.markCompleted();
             sagaRepository.save(saga);
 
-            // 2. Create Event using the Record
+            
             AdvanceOrderProgressCommand finalEvent =  new AdvanceOrderProgressCommand(
                     orderId,
                     OrderProgress.ORDER_COMPLETED
@@ -54,7 +54,7 @@ public class InventoryReservedListener {
 
 
 
-            // 3. Send (This will work now because Records are serializable by default)
+            
             log.info("Attempting to send OrderCompletedEvent...");
             kafkaTemplate.send("order.command.advance-progress", orderId.toString(), finalEvent);
 
@@ -62,7 +62,7 @@ public class InventoryReservedListener {
 
         } catch (Exception e) {
             log.error("🔥 CRITICAL ERROR in InventoryReservedListener 🔥", e);
-            throw e; // Ensure rollback
+            throw e; 
         }
     }
 }

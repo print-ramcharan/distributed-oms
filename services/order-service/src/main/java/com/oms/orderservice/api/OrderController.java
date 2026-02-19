@@ -97,10 +97,10 @@ public class OrderController {
                     .map(this::toDomain)
                     .collect(Collectors.toList());
 
-            // Use header if present, else fallback to body (or null if both missing)
+            
             UUID userId = userIdHeader != null ? UUID.fromString(userIdHeader) : request.getUserId();
-            // If userId is still null, we might want to throw error or allow anonymous?
-            // For now, allow null to pass to service which might handle it.
+            
+            
 
             Order order = orderCommandService.createOrder(items, request.getCustomerEmail(), userId);
 

@@ -19,13 +19,13 @@
     </properties>
 
     <dependencies>
-        <!-- Web -->
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Actuator + Prometheus -->
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -35,7 +35,7 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
-        <!-- JPA + PostgreSQL -->
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -46,33 +46,33 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Kafka -->
+        
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
-        <!-- Event Contracts (shared DTOs) -->
+        
         <dependency>
             <groupId>com.oms</groupId>
             <artifactId>event-contracts</artifactId>
             <version>1.0.0</version>
         </dependency>
 
-        <!-- Lombok -->
+        
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Jackson Java 8 time support -->
+        
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
-        <!-- Tracing -->
+        
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-brave</artifactId>
@@ -82,7 +82,7 @@
             <artifactId>zipkin-reporter-brave</artifactId>
         </dependency>
 
-        <!-- Test -->
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

@@ -35,17 +35,17 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should process OrderCreatedEvent and send email")
     void shouldProcessOrderCreatedEventAndSendEmail() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         String customerEmail = "customer@example.com";
         BigDecimal amount = new BigDecimal("150.00");
 
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, customerEmail, amount, null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
+        
         verify(emailService, times(1)).sendOrderConfirmation(
                 customerEmail,
                 orderId.toString(),
@@ -55,17 +55,17 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should save notification to repository")
     void shouldSaveNotificationToRepository() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         String customerEmail = "customer@example.com";
         BigDecimal amount = new BigDecimal("200.00");
 
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, customerEmail, amount, null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
+        
         ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository, times(1)).save(notificationCaptor.capture());
 
@@ -80,14 +80,14 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should skip notification when customer email is null")
     void shouldSkipNotificationWhenCustomerEmailIsNull() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, null, new BigDecimal("100.00"), null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
+        
         verify(emailService, never()).sendOrderConfirmation(any(), any(), any());
         verify(notificationRepository, never()).save(any());
     }
@@ -95,14 +95,14 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should skip notification when customer email is empty")
     void shouldSkipNotificationWhenCustomerEmailIsEmpty() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, "", new BigDecimal("100.00"), null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
+        
         verify(emailService, never()).sendOrderConfirmation(any(), any(), any());
         verify(notificationRepository, never()).save(any());
     }
@@ -110,24 +110,24 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should handle complete event processing flow")
     void shouldHandleCompleteEventProcessingFlow() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         String customerEmail = "john.doe@example.com";
         BigDecimal amount = new BigDecimal("999.99");
 
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, customerEmail, amount, null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
-        // Verify email is sent
+        
+        
         verify(emailService).sendOrderConfirmation(
                 customerEmail,
                 orderId.toString(),
                 amount.toString());
 
-        // Verify notification is saved
+        
         ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository).save(notificationCaptor.capture());
 
@@ -140,17 +140,17 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should process event with large order amount")
     void shouldProcessEventWithLargeOrderAmount() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         String customerEmail = "vip@example.com";
         BigDecimal amount = new BigDecimal("10000.50");
 
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, customerEmail, amount, null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
+        
         verify(emailService).sendOrderConfirmation(
                 customerEmail,
                 orderId.toString(),
@@ -161,7 +161,7 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should handle multiple events sequentially")
     void shouldHandleMultipleEventsSequentially() {
-        // Given
+        
         UUID orderId1 = UUID.randomUUID();
         UUID orderId2 = UUID.randomUUID();
 
@@ -171,11 +171,11 @@ class OrderEventsConsumerTest {
         OrderCreatedEvent event2 = new OrderCreatedEvent(orderId2, "customer2@example.com", new BigDecimal("200.00"),
                 null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event1);
         orderEventsConsumer.handleOrderEvents(event2);
 
-        // Then
+        
         verify(emailService, times(2)).sendOrderConfirmation(any(), any(), any());
         verify(notificationRepository, times(2)).save(any(Notification.class));
     }
@@ -183,17 +183,17 @@ class OrderEventsConsumerTest {
     @Test
     @DisplayName("Should validate notification entity creation with correct fields")
     void shouldValidateNotificationEntityCreationWithCorrectFields() {
-        // Given
+        
         UUID orderId = UUID.randomUUID();
         String customerEmail = "test@example.com";
         BigDecimal amount = new BigDecimal("75.25");
 
         OrderCreatedEvent event = new OrderCreatedEvent(orderId, customerEmail, amount, null);
 
-        // When
+        
         orderEventsConsumer.handleOrderEvents(event);
 
-        // Then
+        
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository).save(captor.capture());
 

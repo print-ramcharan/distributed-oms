@@ -26,13 +26,13 @@ public class OrderEventsConsumer {
             return;
         }
 
-        // Send Email
+        
         emailService.sendOrderConfirmation(
                 event.getCustomerEmail(),
                 event.getOrderId().toString(),
                 event.getAmount().toString());
 
-        // Audit Log
+        
         Notification notification = new Notification(
                 event.getOrderId(),
                 event.getCustomerEmail(),
