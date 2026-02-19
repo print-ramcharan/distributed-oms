@@ -22,36 +22,50 @@ public class OrderCommandService {
     private final OrderRepository orderRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    private final io.micrometer.core.instrument.Counter ordersCreatedCounter;
+    private final io.micrometer.core.instrument.DistributionSummary revenueSummary;
 
     public OrderCommandService(
             OrderRepository orderRepository,
             OutboxRepository outboxRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.orderRepository = orderRepository;
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
+
+        this.ordersCreatedCounter = io.micrometer.core.instrument.Counter.builder("omniorder_orders_created_total")
+                .description("Total number of orders created")
+                .register(meterRegistry);
+
+        this.revenueSummary = io.micrometer.core.instrument.DistributionSummary.builder("omniorder_revenue_total")
+                .description("Total revenue from orders")
+                .register(meterRegistry);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public Order createOrder(List<OrderItem> items, String customerEmail, UUID userId) {
-        
+
         Order order = Order.create(items, customerEmail, userId);
         orderRepository.save(order);
 
-        
+        ordersCreatedCounter.increment();
+        revenueSummary.record(order.getTotalAmount().doubleValue());
+
         List<OrderItemDTO> itemDtos = order.getItems()
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
 
-        
         OrderCreatedEvent event = new OrderCreatedEvent(
                 order.getId(),
                 order.getCustomerEmail(),
                 order.getTotalAmount(),
                 itemDtos,
-                "USD", 
-                java.math.BigDecimal.ZERO 
-        );
+                "USD",
+                java.math.BigDecimal.ZERO);
 
         OutboxEvent outboxEvent = OutboxEvent.create(
                 order.getId(),
