@@ -37,9 +37,11 @@ public class KafkaConfig {
     @Value("${spring.kafka.consumer.group-id}")
     private String consumerGroupId;
 
-    /* =========================
-       PRODUCER (OUTBOX PUBLISHER)
-    ========================= */
+    /*
+     * =========================
+     * PRODUCER (OUTBOX PUBLISHER)
+     * =========================
+     */
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
@@ -64,16 +66,17 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
-    /* =========================
-       CONSUMER (COMMANDS ONLY)
-    ========================= */
+    /*
+     * =========================
+     * CONSUMER (COMMANDS ONLY)
+     * =========================
+     */
 
     @Bean
-    public ConsumerFactory<String, AdvanceOrderProgressCommand>
-    advanceOrderProgressConsumerFactory() {
+    public ConsumerFactory<String, AdvanceOrderProgressCommand> advanceOrderProgressConsumerFactory() {
 
-        JsonDeserializer<AdvanceOrderProgressCommand> valueDeserializer =
-                new JsonDeserializer<>(AdvanceOrderProgressCommand.class);
+        JsonDeserializer<AdvanceOrderProgressCommand> valueDeserializer = new JsonDeserializer<>(
+                AdvanceOrderProgressCommand.class);
 
         valueDeserializer.addTrustedPackages("com.oms.eventcontracts");
         valueDeserializer.setUseTypeHeaders(false);
@@ -86,36 +89,60 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(
                 props,
                 new StringDeserializer(),
-                valueDeserializer
-        );
+                valueDeserializer);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, AdvanceOrderProgressCommand>
-    advanceOrderProgressKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, AdvanceOrderProgressCommand> advanceOrderProgressKafkaListenerContainerFactory() {
 
-        ConcurrentKafkaListenerContainerFactory<String, AdvanceOrderProgressCommand> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, AdvanceOrderProgressCommand> factory = new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(advanceOrderProgressConsumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+        // Wire error handler → routes to order.command.dlq after 3 retries (2s apart)
+        factory.setCommonErrorHandler(orderCommandErrorHandler(kafkaTemplate()));
 
         return factory;
     }
 
-    /* =========================
-       ERROR HANDLING (DLQ)
-    ========================= */
+    /*
+     * =========================
+     * DLQ CONSUMER FACTORY
+     * =========================
+     */
+
+    @Bean
+    public ConsumerFactory<String, String> dlqConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "order-service-dlq");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringDeserializer.class);
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> dlqKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(dlqConsumerFactory());
+        return factory;
+    }
+
+    /*
+     * =========================
+     * ERROR HANDLING (DLQ)
+     * =========================
+     */
 
     @Bean
     public DefaultErrorHandler orderCommandErrorHandler(
-            KafkaTemplate<String, Object> kafkaTemplate
-    ) {
-        DeadLetterPublishingRecoverer recoverer =
-                new DeadLetterPublishingRecoverer(
-                        kafkaTemplate,
-                        (r, e) -> new TopicPartition("order.command.dlq", r.partition())
-                );
+            KafkaTemplate<String, Object> kafkaTemplate) {
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                kafkaTemplate,
+                (r, e) -> new TopicPartition("order.command.dlq", r.partition()));
 
         return new DefaultErrorHandler(recoverer, new FixedBackOff(2000L, 3));
     }
