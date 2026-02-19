@@ -4,21 +4,75 @@ server:
 spring:
   application:
     name: gateway-service
+
+  # Redis (used by RequestRateLimiter token-bucket algorithm)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2s
+
   cloud:
     gateway:
+      # Default route-level rate limit headers added to every response
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            # Token bucket: 20 requests/second, burst up to 30
+            redis-rate-limiter.replenishRate: 20
+            redis-rate-limiter.burstCapacity: 30
+            redis-rate-limiter.requestedTokens: 1
+            key-resolver: "#{@ipKeyResolver}"
+
       routes:
-        - id: order-service
+        # ──────────────────────────────────────────────
+        # POST /api/orders  →  tighter limit (10 rps)
+        # ──────────────────────────────────────────────
+        - id: order-service-create
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/orders
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 15
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - AddResponseHeader=X-RateLimit-Route, order-create
+
+        # ──────────────────────────────────────────────
+        # GET /api/orders/**  →  relaxed (50 rps)
+        # ──────────────────────────────────────────────
+        - id: order-service-read
           uri: http://localhost:8081
           predicates:
             - Path=/api/orders,/api/orders/**
+            - Method=GET
           filters:
-            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 70
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - AddResponseHeader=X-RateLimit-Route, order-read
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
   zipkin:
     tracing:
       endpoint: http://localhost:9411/api/v2/spans
