@@ -97,10 +97,7 @@ public class OrderController {
                     .map(this::toDomain)
                     .collect(Collectors.toList());
 
-            
             UUID userId = userIdHeader != null ? UUID.fromString(userIdHeader) : request.getUserId();
-            
-            
 
             Order order = orderCommandService.createOrder(items, request.getCustomerEmail(), userId);
 
@@ -130,6 +127,17 @@ public class OrderController {
     private OrderItem toDomain(OrderItemRequest item) {
         return OrderItem.create(item.getProductId(), item.getQuantity(), item.getPrice());
 
+    }
+
+    @GetMapping("/customer/{email}")
+    public ResponseEntity<List<OrderSummaryResponse>> listOrdersByCustomer(@PathVariable String email) {
+        return ResponseEntity.ok(orderQueryService.findOrdersByEmail(email));
+    }
+
+    @PutMapping("/{id}/cancel")
+    @ResponseStatus(HttpStatus.OK)
+    public void cancelOrder(@PathVariable UUID id) {
+        orderCommandService.cancelOrder(id);
     }
 
     @GetMapping("/health")

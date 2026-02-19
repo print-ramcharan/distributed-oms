@@ -16,11 +16,18 @@ import java.util.UUID;
 public class OrderQueryService {
 
     private final OrderRepository orderRepository;
+    private final com.oms.orderservice.domain.repository.OrderQueryRepository orderQueryRepository;
+
+    public java.util.List<com.oms.orderservice.api.dto.OrderSummaryResponse> findOrdersByEmail(String email) {
+        return orderQueryRepository.findByCustomerEmail(email);
+    }
 
     @Cacheable(value = "orders", key = "#id")
-    public Order getOrderById(UUID id){
-        return orderRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+    public Order getOrderById(UUID id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
     }
+
     public Optional<Order> findOrderById(UUID id) {
         return orderRepository.findById(id);
     }
