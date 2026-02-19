@@ -51,3 +51,11 @@ scrape_configs:
     relabel_configs:
       - target_label: service
         replacement: gateway-service
+
+  - job_name: 'fulfillment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8086']
+    relabel_configs:
+      - target_label: service
+        replacement: fulfillment-service
