@@ -8,6 +8,9 @@ import com.oms.paymentservice.repository.PaymentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +18,19 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Core payment service with retry + recovery.
+ *
+ * @Retryable on processPayment: retries up to 3 times on any Exception
+ *            with exponential backoff (1s → 2s → 4s). This handles transient DB
+ *            connection issues or brief timeouts without losing the payment.
+ *
+ * @Recover fires after all retries are exhausted. Instead of propagating
+ *          the exception (which would crash the Kafka consumer and cause
+ *          infinite
+ *          redelivery), we mark the payment as FAILED and let the saga
+ *          compensate.
+ */
 @Service
 @Slf4j
 public class PaymentService {
@@ -27,20 +43,14 @@ public class PaymentService {
 
     @Transactional
     public Payment createPayment(UUID orderId, BigDecimal amount, String idempotencyKey) {
-        // Idempotency: check if payment already exists by orderId (business key) or
-        // idempotencyKey
         if (idempotencyKey != null && paymentRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
             return paymentRepository.findByIdempotencyKey(idempotencyKey).get();
         }
 
         return paymentRepository.findByOrderId(orderId)
                 .orElseGet(() -> {
-                    // Generate a transaction ID for the new payment
                     String transactionId = UUID.randomUUID().toString();
-                    // Default payment method for now, can be passed in later
-                    String paymentMethod = "CREDIT_CARD";
-
-                    Payment payment = new Payment(orderId, amount, transactionId, idempotencyKey, paymentMethod);
+                    Payment payment = new Payment(orderId, amount, transactionId, idempotencyKey, "CREDIT_CARD");
                     return paymentRepository.save(payment);
                 });
     }
@@ -49,25 +59,56 @@ public class PaymentService {
         return idempotencyKey != null && paymentRepository.findByIdempotencyKey(idempotencyKey).isPresent();
     }
 
+    /**
+     * Processes a payment with automatic retry on transient failures.
+     * Attempts: 1s delay → 2s → 4s (3 total attempts, exponential backoff).
+     * On exhaustion → {@link #recoverProcessPayment(Exception, UUID)} fires.
+     */
     @Transactional
+    @Retryable(retryFor = {
+            Exception.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2, maxDelay = 10000))
     public Payment processPayment(UUID orderId) {
+        log.info("💳 Attempting to process payment for orderId={}", orderId);
+
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
 
         payment.markCompleted();
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Publish PaymentCompletedEvent to Kafka
         PaymentCompletedEvent event = new PaymentCompletedEvent(
                 savedPayment.getOrderId(),
                 savedPayment.getId(),
                 savedPayment.getAmount(),
                 Instant.now());
         kafkaTemplate.send("payment.completed", orderId.toString(), event);
+
         log.info("✅ Published PaymentCompletedEvent | orderId={} | paymentId={}",
                 orderId, savedPayment.getId());
 
         return savedPayment;
+    }
+
+    /**
+     * Recovery method — called after all retries of processPayment are exhausted.
+     * Marks the payment FAILED and publishes payment.failed event so the saga
+     * orchestrator triggers its compensation flow (cancel order, notify customer).
+     */
+    @Recover
+    @Transactional
+    public Payment recoverProcessPayment(Exception ex, UUID orderId) {
+        log.error("🚨 All retries exhausted for processPayment | orderId={} | error={}",
+                orderId, ex.getMessage());
+
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+        if (payment != null) {
+            payment.markFailed();
+            paymentRepository.save(payment);
+            log.warn("⚠️ Payment marked FAILED after retry exhaustion | orderId={}", orderId);
+        }
+
+        // Let the saga handle compensation — don't rethrow
+        return payment;
     }
 
     @Transactional
@@ -78,7 +119,6 @@ public class PaymentService {
         payment.markRefunded();
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Publish PaymentRefundedEvent to Kafka
         PaymentRefundedEvent event = new PaymentRefundedEvent(
                 savedPayment.getOrderId(),
                 savedPayment.getId(),
@@ -96,16 +136,15 @@ public class PaymentService {
     public Payment markPaymentFailed(UUID orderId, String reason) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found for orderId: " + orderId));
-
         payment.markFailed();
         return paymentRepository.save(payment);
     }
 
-    // ========== Backward-compatible methods for existing consumers ==========
+    // ========== Backward-compatible aliases ==========
 
     @Transactional
     public Payment createPendingPayment(UUID orderId, BigDecimal amount) {
-        return createPayment(orderId, amount, null); // Backward compatibility: no idempotency key
+        return createPayment(orderId, amount, null);
     }
 
     @Transactional
