@@ -4,22 +4,41 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-public class OrderCreatedEvent {
+public class OrderCreatedEvent extends BaseEvent {
 
     private UUID orderId;
     private String customerEmail;
     private BigDecimal amount;
     private List<OrderItemDTO> items;
 
+    // V2 fields
+    private String currency = "USD";
+    private BigDecimal discount = BigDecimal.ZERO;
+
     // Jackson
     public OrderCreatedEvent() {
+        super(1);
     }
 
+    // V1 Constructor (Legacy) - defaults to v1, USD, 0 discount
     public OrderCreatedEvent(UUID orderId, String customerEmail, BigDecimal amount, List<OrderItemDTO> items) {
+        super(1);
         this.orderId = orderId;
         this.customerEmail = customerEmail;
         this.amount = amount;
         this.items = items;
+    }
+
+    // V2 Constructor
+    public OrderCreatedEvent(UUID orderId, String customerEmail, BigDecimal amount, List<OrderItemDTO> items,
+            String currency, BigDecimal discount) {
+        super(2);
+        this.orderId = orderId;
+        this.customerEmail = customerEmail;
+        this.amount = amount;
+        this.items = items;
+        this.currency = currency;
+        this.discount = discount;
     }
 
     public UUID getOrderId() {
@@ -36,5 +55,13 @@ public class OrderCreatedEvent {
 
     public List<OrderItemDTO> getItems() {
         return items;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public BigDecimal getDiscount() {
+        return discount;
     }
 }
