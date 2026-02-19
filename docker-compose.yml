@@ -237,6 +237,35 @@ services:
       - "1025:1025" # SMTP
       - "8025:8025" # HTTP UI
 
+  fulfillment-db:
+    image: postgres:15
+    container_name: fulfillment-db
+    environment:
+      POSTGRES_DB: fulfillmentdb
+      POSTGRES_USER: fulfillmentuser
+      POSTGRES_PASSWORD: fulfillmentpass
+    ports:
+      - "5438:5432"
+    volumes:
+      - fulfillment_db_data:/var/lib/postgresql/data
+
+  fulfillment-service:
+    build:
+      context: .
+      dockerfile: services/fulfillment-service/Dockerfile
+    container_name: fulfillment-service
+    ports:
+      - "8086:8086"
+    environment:
+      - SERVER_PORT=8086
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://fulfillment-db:5432/fulfillmentdb
+      - SPRING_DATASOURCE_USERNAME=fulfillmentuser
+      - SPRING_DATASOURCE_PASSWORD=fulfillmentpass
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - fulfillment-db
+      - kafka
+
   prometheus:
     image: prom/prometheus:v2.51.2
     container_name: prometheus
@@ -274,5 +303,6 @@ volumes:
   saga_db_data:
   inventory_db_data:
   notification_db_data:
+  fulfillment_db_data:
   prometheus_data:
   grafana_data:
