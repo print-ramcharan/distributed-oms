@@ -9,7 +9,7 @@ public class OrderCancelledEvent {
     private String reason;
     private Instant occurredAt;
 
-    // Required for Kafka / Jackson
+    
     public OrderCancelledEvent() {
     }
 

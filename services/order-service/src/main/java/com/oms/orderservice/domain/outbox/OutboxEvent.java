@@ -2,8 +2,8 @@ package com.oms.orderservice.domain.outbox;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import org.hibernate.annotations.JdbcTypeCode; // Import added
-import org.hibernate.type.SqlTypes;           // Import added
+import org.hibernate.annotations.JdbcTypeCode; 
+import org.hibernate.type.SqlTypes;           
 
 import java.time.Instant;
 import java.util.UUID;
@@ -26,7 +26,7 @@ public class OutboxEvent {
     @Column(name = "event_type", nullable = false)
     private String eventType;
 
-    // --- FIX APPLIED HERE ---
+    
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     private String payload;

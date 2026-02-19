@@ -14,13 +14,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  # Kafka (Mocked or Embedded if needed, but here disabling listeners to avoid connection errors if not using EmbeddedKafka)
   kafka:
-    bootstrap-servers: localhost:9092 # Default fallback
+bootstrap-servers: localhost:9092
     consumer:
-      auto-startup: false # Disable consumers by default in tests
+auto-startup: false
 
-  # Redis - Will be handled by Testcontainers System Properties override
   data:
     redis:
       host: localhost

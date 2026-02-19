@@ -38,13 +38,13 @@ class InventoryReservedConsumerTest {
 
     @Test
     void shouldCreateAndDispatchTaskWhenEventReceived() {
-        // Given
+        
         String orderId = UUID.randomUUID().toString();
         InventoryReservedEvent event = new InventoryReservedEvent(orderId, Instant.now());
 
         when(fulfillmentTaskRepository.findByOrderId(orderId)).thenReturn(Optional.empty());
 
-        // Simulate JPA saving by setting ID via reflection
+        
         when(fulfillmentTaskRepository.save(any(FulfillmentTask.class))).thenAnswer(invocation -> {
             FulfillmentTask t = invocation.getArgument(0);
             if (t.getId() == null) {
@@ -53,36 +53,36 @@ class InventoryReservedConsumerTest {
             return t;
         });
 
-        // When
+        
         consumer.handle(event);
 
-        // Then
-        // 1. Verify task created and saved (twice: created, then dispatched)
+        
+        
         ArgumentCaptor<FulfillmentTask> taskCaptor = ArgumentCaptor.forClass(FulfillmentTask.class);
         verify(fulfillmentTaskRepository, times(2)).save(taskCaptor.capture());
 
-        FulfillmentTask savedTask = taskCaptor.getAllValues().get(1); // Get the latest state
+        FulfillmentTask savedTask = taskCaptor.getAllValues().get(1); 
         assertThat(savedTask.getOrderId()).isEqualTo(orderId);
-        // Assuming dispatch() changes status, but we can't check status without seeing
-        // FulfillmentTask class.
-        // But we know it calls save twice.
+        
+        
+        
 
-        // 2. Verify event published
+        
         verify(kafkaTemplate).send(eq("fulfillment.initiated"), eq(orderId), any(FulfillmentInitiatedEvent.class));
     }
 
     @Test
     void shouldIgnoreDuplicateEventIfTaskExists() {
-        // Given
+        
         String orderId = UUID.randomUUID().toString();
         InventoryReservedEvent event = new InventoryReservedEvent(orderId, Instant.now());
 
         when(fulfillmentTaskRepository.findByOrderId(orderId)).thenReturn(Optional.of(FulfillmentTask.create(orderId)));
 
-        // When
+        
         consumer.handle(event);
 
-        // Then
+        
         verify(fulfillmentTaskRepository, never()).save(any());
         verify(kafkaTemplate, never()).send(any(), any(), any());
     }

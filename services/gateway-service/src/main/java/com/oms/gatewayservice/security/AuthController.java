@@ -17,7 +17,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestParam String userId) {
-        // Mock authentication — accepts any userId
+        
         String token = jwtUtil.generateToken(userId);
         return ResponseEntity.ok(Map.of("token", token));
     }

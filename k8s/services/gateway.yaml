@@ -15,7 +15,7 @@ spec:
       containers:
         - name: gateway-service
           image: gateway-service:latest
-          imagePullPolicy: Never  # Use local image
+imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:
@@ -27,8 +27,6 @@ spec:
               value: "http://zipkin:9411/api/v2/spans"
             - name: SPRING_CLOUD_GATEWAY_ROUTES_0_URI
               value: "http://order-service:8081"
-            # Define other routes dynamically or use DNS names in application.yml
-          # Health check
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

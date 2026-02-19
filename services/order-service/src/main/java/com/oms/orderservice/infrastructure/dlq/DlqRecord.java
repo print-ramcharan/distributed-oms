@@ -7,11 +7,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Persisted record of every message that landed in the DLQ.
- * Written by DlqConsumer when a message arrives on order.command.dlq.
- * Admin endpoints expose these for visibility and manual retry.
- */
+
 @Entity
 @Table(name = "dlq_records")
 @Getter

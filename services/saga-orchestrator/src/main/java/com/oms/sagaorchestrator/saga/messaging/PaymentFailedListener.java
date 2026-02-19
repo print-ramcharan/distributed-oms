@@ -19,7 +19,7 @@ public class PaymentFailedListener {
 
 
     @KafkaListener(topics = "payment.failed", groupId = "saga-orchestrator"
-//            , containerFactory = "genericKafkaListenerContainerFactory"
+
             )
     public void handle(PaymentFailedEvent event){
         OrderSaga saga = sagaRepository.findById(event.getOrderId()).orElseThrow(() -> new IllegalStateException("Saga not found"));

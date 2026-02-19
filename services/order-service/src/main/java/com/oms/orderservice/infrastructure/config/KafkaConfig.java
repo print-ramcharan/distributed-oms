@@ -37,11 +37,7 @@ public class KafkaConfig {
     @Value("${spring.kafka.consumer.group-id}")
     private String consumerGroupId;
 
-    /*
-     * =========================
-     * PRODUCER (OUTBOX PUBLISHER)
-     * =========================
-     */
+    
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
@@ -66,11 +62,7 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
-    /*
-     * =========================
-     * CONSUMER (COMMANDS ONLY)
-     * =========================
-     */
+    
 
     @Bean
     public ConsumerFactory<String, AdvanceOrderProgressCommand> advanceOrderProgressConsumerFactory() {
@@ -99,17 +91,13 @@ public class KafkaConfig {
 
         factory.setConsumerFactory(advanceOrderProgressConsumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
-        // Wire error handler → routes to order.command.dlq after 3 retries (2s apart)
+        
         factory.setCommonErrorHandler(orderCommandErrorHandler(kafkaTemplate()));
 
         return factory;
     }
 
-    /*
-     * =========================
-     * DLQ CONSUMER FACTORY
-     * =========================
-     */
+    
 
     @Bean
     public ConsumerFactory<String, String> dlqConsumerFactory() {
@@ -131,11 +119,7 @@ public class KafkaConfig {
         return factory;
     }
 
-    /*
-     * =========================
-     * ERROR HANDLING (DLQ)
-     * =========================
-     */
+    
 
     @Bean
     public DefaultErrorHandler orderCommandErrorHandler(

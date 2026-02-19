@@ -18,10 +18,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for InventoryService
- * Tests inventory reservation, release, and concurrency handling
- */
+
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
 
@@ -47,17 +44,17 @@ class InventoryServiceTest {
 
     @Test
     void shouldReserveInventorySuccessfullyWhenStockAvailable() {
-        // Given
+        
         Inventory inventory = new Inventory(productId, 100);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
         when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(reservationRepository.save(any(InventoryReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
+        
         InventoryReservation reservation = inventoryService.reserveInventory(orderId, productId, quantity);
 
-        // Then
+        
         assertThat(reservation).isNotNull();
         assertThat(reservation.getOrderId()).isEqualTo(orderId);
         assertThat(reservation.getProductId()).isEqualTo(productId);
@@ -70,11 +67,11 @@ class InventoryServiceTest {
 
     @Test
     void shouldThrowExceptionWhenInsufficientStock() {
-        // Given
+        
         Inventory inventory = new Inventory(productId, 3);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
 
-        // When/Then
+        
         assertThatThrownBy(() -> inventoryService.reserveInventory(orderId, productId, quantity))
                 .isInstanceOf(Inventory.InsufficientStockException.class)
                 .hasMessageContaining("Insufficient stock");
@@ -82,10 +79,10 @@ class InventoryServiceTest {
 
     @Test
     void shouldThrowExceptionWhenProductNotFound() {
-        // Given
+        
         when(inventoryRepository.findById(productId)).thenReturn(Optional.empty());
 
-        // When/Then
+        
         assertThatThrownBy(() -> inventoryService.reserveInventory(orderId, productId, quantity))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Product not found");
@@ -93,10 +90,10 @@ class InventoryServiceTest {
 
     @Test
     void shouldReleaseReservationSuccessfully() {
-        // Given
+        
         Inventory inventory = new Inventory(productId, 100);
-        // Simulate reserved state: 95 available, 5 reserved
-        inventory.confirmReservation(0); // Hack or setter? Model has setters.
+        
+        inventory.confirmReservation(0); 
         inventory.setAvailableQuantity(95);
         inventory.setReservedQuantity(5);
 
@@ -105,25 +102,25 @@ class InventoryServiceTest {
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
         when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
+        
         inventoryService.releaseReservation(orderId);
 
-        // Then
+        
         assertThat(inventory.getAvailableQuantity()).isEqualTo(100);
         assertThat(inventory.getReservedQuantity()).isEqualTo(0);
         verify(inventoryRepository).save(inventory);
 
-        // Changed: Verification of soft delete (status update)
+        
         assertThat(reservation.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.RELEASED);
         verify(reservationRepository).save(reservation);
     }
 
     @Test
     void shouldThrowExceptionWhenReservationNotFoundForRelease() {
-        // Given
+        
         when(reservationRepository.findByOrderId(orderId)).thenReturn(Optional.empty());
 
-        // When/Then
+        
         assertThatThrownBy(() -> inventoryService.releaseReservation(orderId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Reservation not found");
@@ -131,7 +128,7 @@ class InventoryServiceTest {
 
     @Test
     void shouldConfirmReservationSuccessfully() {
-        // Given
+        
         InventoryReservation reservation = new InventoryReservation(orderId, productId, quantity);
         Inventory inventory = new Inventory(productId, 100);
         inventory.setAvailableQuantity(95);
@@ -141,27 +138,27 @@ class InventoryServiceTest {
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
         when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
+        
         inventoryService.confirmReservation(orderId);
 
-        // Then
+        
         assertThat(reservation.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.CONFIRMED);
         assertThat(inventory.getReservedQuantity()).isEqualTo(0);
-        assertThat(inventory.getTotalQuantity()).isEqualTo(95); // 100 - 5
+        assertThat(inventory.getTotalQuantity()).isEqualTo(95); 
         verify(reservationRepository).save(reservation);
         verify(inventoryRepository).save(inventory);
     }
 
     @Test
     void shouldReturnExistingReservationIfAlreadyExists() {
-        // Given
+        
         InventoryReservation existingReservation = new InventoryReservation(orderId, productId, quantity);
         when(reservationRepository.findByOrderId(orderId)).thenReturn(Optional.of(existingReservation));
 
-        // When
+        
         InventoryReservation reservation = inventoryService.reserveInventory(orderId, productId, quantity);
 
-        // Then
+        
         assertThat(reservation).isEqualTo(existingReservation);
         verify(inventoryRepository, never()).save(any());
         verify(reservationRepository, never()).save(any());
@@ -169,36 +166,36 @@ class InventoryServiceTest {
 
     @Test
     void shouldCheckInventoryAvailability() {
-        // Given
+        
         Inventory inventory = new Inventory(productId, 100);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
 
-        // When
+        
         boolean available = inventoryService.isAvailable(productId, quantity);
 
-        // Then
+        
         assertThat(available).isTrue();
     }
 
     @Test
     void shouldReturnFalseWhenInventoryNotAvailable() {
-        // Given
+        
         Inventory inventory = new Inventory(productId, 3);
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
 
-        // When
+        
         boolean available = inventoryService.isAvailable(productId, quantity);
 
-        // Then
+        
         assertThat(available).isFalse();
     }
 
     @Test
     void shouldReleaseExpiredReservations() {
-        // Given
+        
         InventoryReservation expiredReservation = new InventoryReservation(orderId, productId, quantity);
-        // We can't easily mock Instant.now() inside the service without a Clock bean,
-        // but we can mock the repository return.
+        
+        
 
         Inventory inventory = new Inventory(productId, 100);
         inventory.confirmReservation(0);
@@ -213,11 +210,11 @@ class InventoryServiceTest {
         when(inventoryRepository.findById(productId)).thenReturn(Optional.of(inventory));
         when(inventoryRepository.save(any(Inventory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // When
+        
         inventoryService.releaseExpiredReservations();
 
-        // Then
-        InventoryReservation released = expiredReservation; // It's the same object reference
+        
+        InventoryReservation released = expiredReservation; 
         assertThat(released.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.RELEASED);
         verify(reservationRepository)
                 .findByStatusAndExpiresAtBefore(eq(InventoryReservation.ReservationStatus.RESERVED), any());

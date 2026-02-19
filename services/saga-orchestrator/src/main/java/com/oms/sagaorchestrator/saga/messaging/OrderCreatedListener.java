@@ -19,21 +19,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Listens to order.event.created and starts the saga by dispatching
- * an InitiatePaymentCommand to the payment service via Kafka.
- *
- * Circuit Breaker protects against Kafka broker-level failures:
- * if kafkaTemplate.send() starts throwing (broker unavailable, topic errors),
- * the breaker opens and the saga fails fast instead of blocking Kafka consumer
- * threads or retrying indefinitely.
- *
- * For payment-service APPLICATION failures (process crash, OOM),
- * Kafka's durability means messages wait in the topic and are processed
- * when payment-service recovers — that's intentional temporal decoupling.
- * The @Retryable in PaymentService handles transient failures within
- * payment-service.
- */
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -48,7 +34,7 @@ public class OrderCreatedListener {
         @PostConstruct
         public void init() {
                 paymentCircuitBreaker = circuitBreakerRegistry.circuitBreaker("payment-service");
-                // Log state transitions for observability
+                
                 paymentCircuitBreaker.getEventPublisher()
                                 .onStateTransition(event -> log.warn(
                                                 "🔌 Circuit Breaker [payment-service] state changed: {} → {}",
@@ -69,16 +55,16 @@ public class OrderCreatedListener {
                                         return sagaRepository.save(s);
                                 });
 
-                // Idempotency guard
+                
                 if (saga.getState() != SagaState.STARTED) {
                         log.info("⏭️ Saga already progressed for orderId={}, skipping", event.getOrderId());
                         return;
                 }
 
                 try {
-                        // Wrap Kafka publishes in a circuit breaker.
-                        // Trips if the Kafka broker itself becomes unreachable or topic errors
-                        // accumulate — prevents blocking consumer threads indefinitely.
+                        
+                        
+                        
                         CircuitBreaker.decorateRunnable(paymentCircuitBreaker, () -> {
                                 kafkaTemplate.send(
                                                 "order.command.advance-progress",
@@ -97,7 +83,7 @@ public class OrderCreatedListener {
                         log.info("✅ Payment command dispatched for orderId={}", event.getOrderId());
 
                 } catch (CallNotPermittedException e) {
-                        // Circuit is OPEN — fail fast, trigger compensation
+                        
                         log.error("🔴 Circuit OPEN for payment-service — failing saga fast for orderId={}",
                                         event.getOrderId());
                         handlePaymentDispatchFailure(saga);
@@ -109,11 +95,7 @@ public class OrderCreatedListener {
                 }
         }
 
-        /**
-         * When payment dispatch fails (circuit open or exception),
-         * mark the saga as payment-failed so the PaymentFailedListener
-         * can trigger the compensation flow (cancel order, notify customer).
-         */
+        
         private void handlePaymentDispatchFailure(OrderSaga saga) {
                 try {
                         saga.markPaymentFailed();

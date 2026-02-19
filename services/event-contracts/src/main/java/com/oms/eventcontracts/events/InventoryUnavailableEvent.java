@@ -8,11 +8,11 @@ public class InventoryUnavailableEvent {
     private String reason;
     private Instant timestamp;
 
-    // ✅ Required by Jackson
+    
     public InventoryUnavailableEvent() {
     }
 
-    // ✅ Producer-side constructor
+    
     public InventoryUnavailableEvent(String orderId, String reason, Instant timestamp) {
         this.orderId = orderId;
         this.reason = reason;

@@ -33,14 +33,14 @@ public class ReserveStockUseCase {
     @Transactional
     public void execute(UUID orderId, List<ReserveInventoryCommand.LineItem> items) {
 
-        // 1️⃣ Idempotency Check (Order Level)
-        // If we have ANY reservation for this order, we assume it was already processed.
+        
+        
         if (reservationRepository.existsByOrderId(orderId.toString())) {
             log.info("Ignored duplicate reservation request for orderId={}", orderId);
             return;
         }
 
-        // 2️⃣ Bulk Fetch Inventory (Performance Optimization)
+        
         List<String> productIds = items.stream()
                 .map(ReserveInventoryCommand.LineItem::getProductId)
                 .toList();
@@ -49,18 +49,18 @@ public class ReserveStockUseCase {
                 .stream()
                 .collect(Collectors.toMap(Inventory::getProductId, Function.identity()));
 
-        // 3️⃣ Validation Phase (In-Memory Check)
+        
         for (ReserveInventoryCommand.LineItem item : items) {
             Inventory inventory = inventoryMap.get(item.getProductId());
 
-            // Check A: Product Exists?
+            
             if (inventory == null) {
                 log.warn("Validation Failed: Product {} not found for order {}", item.getProductId(), orderId);
                 publishFailure(orderId, "PRODUCT_NOT_FOUND: " + item.getProductId());
                 return;
             }
 
-            // Check B: Sufficient Stock?
+            
             if (!inventory.hasAvailableStock(item.getQuantity())) {
                 log.warn("Validation Failed: Insufficient stock for {} in order {}", item.getProductId(), orderId);
                 publishFailure(orderId, "INSUFFICIENT_STOCK: " + item.getProductId());
@@ -68,18 +68,18 @@ public class ReserveStockUseCase {
             }
         }
 
-        // 4️⃣ Execution Phase (Database Updates)
-        // If we reached here, ALL items are valid. We can safely reserve.
+        
+        
         List<InventoryReservation> newReservations = new ArrayList<>();
 
         try {
             for (ReserveInventoryCommand.LineItem item : items) {
                 Inventory inventory = inventoryMap.get(item.getProductId());
 
-                // Decrement Stock
+                
                 inventory.reserveStock(item.getQuantity());
 
-                // Prepare Record
+                
                 newReservations.add(new InventoryReservation(
                         orderId,
                         item.getProductId(),
@@ -87,16 +87,16 @@ public class ReserveStockUseCase {
                 ));
             }
 
-            // Batch Save
+            
             inventoryRepository.saveAll(inventoryMap.values());
             reservationRepository.saveAll(newReservations);
 
-            // 5️⃣ Emit ONE Success Event
+            
             publishSuccess(orderId);
 
         } catch (Exception e) {
             log.error("Unexpected error during reservation for order {}", orderId, e);
-            throw e; // Rollback transaction
+            throw e; 
         }
     }
 

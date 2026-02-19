@@ -28,22 +28,22 @@ class EmailServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Set the fromEmail field using reflection
+        
         ReflectionTestUtils.setField(emailService, "fromEmail", "noreply@distributed-oms.com");
     }
 
     @Test
     @DisplayName("Should send order confirmation email successfully")
     void shouldSendOrderConfirmationEmail() {
-        // Given
+        
         String to = "customer@example.com";
         String orderId = "order-123";
         String amount = "100.00";
 
-        // When
+        
         emailService.sendOrderConfirmation(to, orderId, amount);
 
-        // Then
+        
         ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender, times(1)).send(messageCaptor.capture());
 
@@ -58,7 +58,7 @@ class EmailServiceTest {
     @Test
     @DisplayName("Should handle email sending failure gracefully")
     void shouldHandleEmailSendingFailureGracefully() {
-        // Given
+        
         String to = "customer@example.com";
         String orderId = "order-123";
         String amount = "100.00";
@@ -66,25 +66,25 @@ class EmailServiceTest {
         doThrow(new RuntimeException("SMTP server unavailable"))
                 .when(mailSender).send(any(SimpleMailMessage.class));
 
-        // When - should not throw exception
+        
         emailService.sendOrderConfirmation(to, orderId, amount);
 
-        // Then - verify that send was attempted despite failure
+        
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
     }
 
     @Test
     @DisplayName("Should format email with correct content structure")
     void shouldFormatEmailWithCorrectContentStructure() {
-        // Given
+        
         String to = "test@example.com";
         String orderId = "ORD-456";
         String amount = "250.75";
 
-        // When
+        
         emailService.sendOrderConfirmation(to, orderId, amount);
 
-        // Then
+        
         ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(messageCaptor.capture());
 
@@ -100,15 +100,15 @@ class EmailServiceTest {
     @Test
     @DisplayName("Should send email with multiple recipients")
     void shouldSendEmailWithCustomerEmail() {
-        // Given
+        
         String to = "john.doe@example.com";
         String orderId = "ORD-789";
         String amount = "500.00";
 
-        // When
+        
         emailService.sendOrderConfirmation(to, orderId, amount);
 
-        // Then
+        
         ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(messageCaptor.capture());
 
@@ -119,15 +119,15 @@ class EmailServiceTest {
     @Test
     @DisplayName("Should use correct from email address")
     void shouldUseCorrectFromEmailAddress() {
-        // Given
+        
         String to = "customer@example.com";
         String orderId = "order-123";
         String amount = "100.00";
 
-        // When
+        
         emailService.sendOrderConfirmation(to, orderId, amount);
 
-        // Then
+        
         ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(messageCaptor.capture());
 
@@ -138,15 +138,15 @@ class EmailServiceTest {
     @Test
     @DisplayName("Should include subject with order ID")
     void shouldIncludeSubjectWithOrderId() {
-        // Given
+        
         String to = "customer@example.com";
         String orderId = "ORD-XYZ-999";
         String amount = "75.50";
 
-        // When
+        
         emailService.sendOrderConfirmation(to, orderId, amount);
 
-        // Then
+        
         ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(messageCaptor.capture());
 
@@ -157,14 +157,14 @@ class EmailServiceTest {
     @Test
     @DisplayName("Should not throw exception when mail sender fails")
     void shouldNotThrowExceptionWhenMailSenderFails() {
-        // Given
+        
         doThrow(new RuntimeException("Network error"))
                 .when(mailSender).send(any(SimpleMailMessage.class));
 
-        // When/Then - should not throw exception
+        
         emailService.sendOrderConfirmation("test@example.com", "order-123", "100");
 
-        // Verify mail sender was still called
+        
         verify(mailSender).send(any(SimpleMailMessage.class));
     }
 }

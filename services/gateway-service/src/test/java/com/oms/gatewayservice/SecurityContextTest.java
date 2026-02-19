@@ -17,28 +17,30 @@ class SecurityContextTest {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @org.springframework.boot.test.context.TestConfiguration
+    @org.springframework.web.bind.annotation.RestController
+    static class TestConfig {
+        @org.springframework.web.bind.annotation.GetMapping("/test/secure")
+        public String secureEndpoint() {
+            return "secure";
+        }
+    }
+
     @Test
     void shouldReturnUnauthorizedWhenNoTokenProvided() {
-        webTestClient.post().uri("/api/orders")
+        webTestClient.get().uri("/test/secure")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void shouldReturnOkWhenValidTokenProvided() {
-        // Authenticate to get a token
         String token = jwtUtil.generateToken("user-123");
 
-        // The gateway routes /api/orders to order-service.
-        // mocked order-service is not running, so expect 503 (Service Unavailable)
-        // OR 404 if route is not matching, but definitely NOT 401.
-        // Actually, without a running order-service, Gateway returns 503.
-        // We are testing SECURITY here, so 503 means "Passed Security, failed to
-        // connect to downstream".
-
-        webTestClient.post().uri("/api/orders")
+        webTestClient.get().uri("/test/secure")
                 .header("Authorization", "Bearer " + token)
                 .exchange()
-                .expectStatus().isNotFound(); // 404 means Auth passed but route not found/matched
+                .expectStatus().isOk()
+                .expectBody(String.class).isEqualTo("secure");
     }
 }

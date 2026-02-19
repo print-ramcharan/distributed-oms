@@ -4,6 +4,3 @@ metadata:
   name: oms-config
 data:
   SPRING_PROFILES_ACTIVE: "prod" 
-  # In a real scenario, we might put common env vars here.
-  # Currently services use hardcoded env vars in their deployments.
-  # This ConfigMap is a placeholder for future shared configuration.

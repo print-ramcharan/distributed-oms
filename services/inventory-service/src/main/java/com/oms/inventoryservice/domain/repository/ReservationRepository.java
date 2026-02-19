@@ -21,13 +21,13 @@ public interface ReservationRepository {
     void saveAll(List<InventoryReservation> newReservations);
 }
 
-//public interface ReservationRepository {
-//
-//    Optional<InventoryReservation> findByOrderId(String orderId);
-//
-//    Optional<InventoryReservation> findByOrderIdAndProductId(UUID orderId, String productId);
-//
-//    InventoryReservation save(InventoryReservation reservation);
-//
-//    List<InventoryReservation> findExpiredReservations(Instant now, ReservationStatus status);
-//}
+
+
+
+
+
+
+
+
+
+

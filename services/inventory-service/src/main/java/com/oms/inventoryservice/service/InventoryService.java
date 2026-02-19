@@ -21,14 +21,14 @@ public class InventoryService {
 
         @Transactional
         public InventoryReservation reserveInventory(UUID orderId, String productId, int quantity) {
-                // Idempotency: check if reservation already exists
+                
                 return reservationRepository.findByOrderId(orderId)
                                 .orElseGet(() -> {
                                         Inventory inventory = inventoryRepository.findById(productId)
                                                         .orElseThrow(() -> new IllegalArgumentException(
                                                                         "Product not found: " + productId));
 
-                                        // Use domain model method
+                                        
                                         inventory.reserveStock(quantity);
                                         inventoryRepository.save(inventory);
 
@@ -48,13 +48,13 @@ public class InventoryService {
                                 .orElseThrow(() -> new IllegalArgumentException(
                                                 "Product not found: " + reservation.getProductId()));
 
-                // Use domain model method (added recently)
+                
                 inventory.releaseStock(reservation.getQuantity());
-                // Also update reservation status
+                
                 reservation.release();
 
                 inventoryRepository.save(inventory);
-                reservationRepository.save(reservation); // Save reservation status change
+                reservationRepository.save(reservation); 
         }
 
         @Transactional
@@ -67,7 +67,7 @@ public class InventoryService {
                                 .orElseThrow(() -> new IllegalArgumentException(
                                                 "Product not found: " + reservation.getProductId()));
 
-                // Use domain model method
+                
                 inventory.confirmReservation(reservation.getQuantity());
                 reservation.confirm();
 

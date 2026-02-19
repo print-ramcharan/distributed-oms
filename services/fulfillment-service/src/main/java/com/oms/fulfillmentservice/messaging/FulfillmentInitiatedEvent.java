@@ -2,10 +2,7 @@ package com.oms.fulfillmentservice.messaging;
 
 import java.time.Instant;
 
-/**
- * Event published to fulfillment.initiated topic after a
- * FulfillmentTask is created and dispatched.
- */
+
 public class FulfillmentInitiatedEvent {
 
     private String orderId;

@@ -33,24 +33,24 @@ public class OrderCommandService {
     }
 
     public Order createOrder(List<OrderItem> items, String customerEmail, UUID userId) {
-        // userId should be provided by the request (or security context in future)
+        
         Order order = Order.create(items, customerEmail, userId);
         orderRepository.save(order);
 
-        // Convert domain objects → DTOs
+        
         List<OrderItemDTO> itemDtos = order.getItems()
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
 
-        // Create V2 event with currency and discount
+        
         OrderCreatedEvent event = new OrderCreatedEvent(
                 order.getId(),
                 order.getCustomerEmail(),
                 order.getTotalAmount(),
                 itemDtos,
-                "USD", // Default currency
-                java.math.BigDecimal.ZERO // Default discount
+                "USD", 
+                java.math.BigDecimal.ZERO 
         );
 
         OutboxEvent outboxEvent = OutboxEvent.create(

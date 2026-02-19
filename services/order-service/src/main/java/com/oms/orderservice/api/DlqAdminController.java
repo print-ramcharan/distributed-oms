@@ -14,14 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Admin REST API for inspecting and retrying DLQ messages.
- *
- * GET /admin/dlq — list all DLQ records (newest first)
- * GET /admin/dlq?status=PENDING — filter by status
- * POST /admin/dlq/{id}/retry — re-publish payload back to original topic
- * POST /admin/dlq/{id}/resolve — mark as resolved without retrying
- */
+
 @RestController
 @RequestMapping("/admin/dlq")
 @RequiredArgsConstructor
@@ -47,10 +40,7 @@ public class DlqAdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Re-publishes the raw payload back to the original topic so the
-     * consumer can try processing it again.
-     */
+    
     @PostMapping("/{id}/retry")
     @Transactional
     public ResponseEntity<Map<String, String>> retry(@PathVariable UUID id) {
@@ -72,10 +62,7 @@ public class DlqAdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Marks the DLQ record as resolved without retrying
-     * (e.g. it was an expected failure or manually handled).
-     */
+    
     @PostMapping("/{id}/resolve")
     @Transactional
     public ResponseEntity<Map<String, String>> resolve(@PathVariable UUID id) {

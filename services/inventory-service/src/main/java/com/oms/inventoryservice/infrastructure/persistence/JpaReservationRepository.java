@@ -44,24 +44,24 @@ public class JpaReservationRepository implements ReservationRepository {
     }
 }
 
-//@Repository
-//@RequiredArgsConstructor
-//public class JpaReservationRepository implements ReservationRepository {
-//
-//    private final com.oms.inventoryservice.infrastructure.persistence.SpringDataReservationRepository springRepo;
-//
-//    @Override
-//    public Optional<InventoryReservation> findByOrderId(String orderId) {
-//        return springRepo.findByOrderId(orderId);
-//    }
-//
-//    @Override
-//    public InventoryReservation save(InventoryReservation reservation) {
-//        return springRepo.save(reservation);
-//    }
-//
-//    @Override
-//    public List<InventoryReservation> findExpiredReservations(Instant now, ReservationStatus status) {
-//        return springRepo.findExpiredReservations(now, status);
-//    }
-//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

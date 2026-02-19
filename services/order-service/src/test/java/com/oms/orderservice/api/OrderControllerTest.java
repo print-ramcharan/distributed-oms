@@ -63,7 +63,7 @@ class OrderControllerTest {
                 CreateOrderRequest request = new CreateOrderRequest();
                 request.setItems(List.of(itemReq));
                 request.setCustomerEmail("test@example.com");
-                // request.setUserId(...) is optional now if header is present
+                
 
                 when(idempotencyService.tryAcquire(idempotencyKey))
                                 .thenReturn(IdempotencyResult.acquired());

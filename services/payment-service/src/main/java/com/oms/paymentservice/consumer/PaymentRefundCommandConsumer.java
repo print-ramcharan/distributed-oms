@@ -36,23 +36,23 @@ public class PaymentRefundCommandConsumer {
                                 .findByOrderId(orderId)
                                 .orElseThrow(() -> new IllegalStateException("Payment not found for order " + orderId));
 
-                // 🔐 Idempotency — DO NOT double-refund
+                
                 if (payment.isRefunded()) {
                         log.info("Refund already completed for order {}", orderId);
                         return;
                 }
 
-                // 1️⃣ Perform refund
+                
                 payment.refund(command.getAmount());
                 paymentRepository.save(payment);
 
-                // 2️⃣ Emit PaymentRefundedEvent back to Saga
+                
                 kafkaTemplate.send(
                                 "payment.refunded",
                                 orderId.toString(),
                                 new PaymentRefundedEvent(
                                                 orderId,
-                                                UUID.fromString(String.valueOf(payment.getId())), // paymentId
+                                                UUID.fromString(String.valueOf(payment.getId())), 
                                                 command.getAmount(),
                                                 command.getReason(),
                                                 Instant.now()));

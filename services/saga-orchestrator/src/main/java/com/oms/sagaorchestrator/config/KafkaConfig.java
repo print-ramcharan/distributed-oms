@@ -39,7 +39,7 @@ public class KafkaConfig {
         @Bean
         public DefaultErrorHandler sagaErrorHandler(
                         DeadLetterPublishingRecoverer recoverer) {
-                FixedBackOff backOff = new FixedBackOff(2000L, 3); // 3 retries
+                FixedBackOff backOff = new FixedBackOff(2000L, 3); 
                 return new DefaultErrorHandler(recoverer, backOff);
         }
 

@@ -15,8 +15,8 @@ public class IdempotencyService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    // @Value("${idempotency.order.ttl-hours}")
-    // private long ttlHours;
+    
+    
     private static final Duration IN_PROGRESS_TTL = Duration.ofSeconds(60);
     private static final Duration COMPLETED_TTL = Duration.ofHours(24);
 

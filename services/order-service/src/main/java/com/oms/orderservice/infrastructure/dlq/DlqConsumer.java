@@ -7,15 +7,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Consumes messages from order.command.dlq — the topic that
- * Spring Kafka's DeadLetterPublishingRecoverer routes to after
- * all retry attempts are exhausted.
- *
- * Each message is persisted as a DlqRecord so that:
- * - Ops can view failures via GET /admin/dlq
- * - Failed messages can be manually retried via POST /admin/dlq/{id}/retry
- */
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -29,7 +21,7 @@ public class DlqConsumer {
         log.warn("📨 DLQ message received | topic={} partition={} offset={} key={}",
                 record.topic(), record.partition(), record.offset(), record.key());
 
-        // Extract Spring Kafka DLQ exception headers
+        
         String exceptionMessage = extractHeader(record, "kafka_dlt-exception-message");
         String originalTopic = extractHeader(record, "kafka_dlt-original-topic");
         String originalOffset = extractHeader(record, "kafka_dlt-original-offset");

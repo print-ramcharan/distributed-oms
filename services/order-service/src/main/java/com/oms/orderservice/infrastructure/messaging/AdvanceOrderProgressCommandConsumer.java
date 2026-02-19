@@ -81,7 +81,7 @@ public class AdvanceOrderProgressCommandConsumer {
 
             outboxRepository.save(outboxEvent);
 
-            // ✅ ACK ONLY AFTER TRANSACTIONAL WORK IS DONE
+            
             ack.acknowledge();
 
         } catch (Exception ex) {

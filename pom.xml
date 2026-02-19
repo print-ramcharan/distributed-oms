@@ -23,5 +23,6 @@
         <module>services/payment-service</module>
         <module>services/notification-service</module>
         <module>services/saga-orchestrator</module>
+        <module>services/fulfillment-service</module>
     </modules>
 </project>
