@@ -43,11 +43,15 @@ public class OrderCommandService {
                 .map(this::toDto)
                 .collect(Collectors.toList());
 
+        // Create V2 event with currency and discount
         OrderCreatedEvent event = new OrderCreatedEvent(
                 order.getId(),
                 order.getCustomerEmail(),
                 order.getTotalAmount(),
-                itemDtos);
+                itemDtos,
+                "USD", // Default currency
+                java.math.BigDecimal.ZERO // Default discount
+        );
 
         OutboxEvent outboxEvent = OutboxEvent.create(
                 order.getId(),
