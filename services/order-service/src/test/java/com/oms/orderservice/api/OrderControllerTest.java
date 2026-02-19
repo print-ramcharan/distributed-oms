@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OrderController.class)
+@org.springframework.context.annotation.Import(com.oms.orderservice.config.SecurityConfig.class)
 class OrderControllerTest {
 
         @Autowired
@@ -52,6 +53,7 @@ class OrderControllerTest {
         void shouldCreateOrderEndpoint() throws Exception {
 
                 String idempotencyKey = UUID.randomUUID().toString();
+                String userId = UUID.randomUUID().toString();
 
                 OrderItemRequest itemReq = new OrderItemRequest();
                 itemReq.setProductId("prod-1");
@@ -61,25 +63,26 @@ class OrderControllerTest {
                 CreateOrderRequest request = new CreateOrderRequest();
                 request.setItems(List.of(itemReq));
                 request.setCustomerEmail("test@example.com");
+                // request.setUserId(...) is optional now if header is present
 
                 when(idempotencyService.tryAcquire(idempotencyKey))
-                        .thenReturn(IdempotencyResult.acquired());
+                                .thenReturn(IdempotencyResult.acquired());
 
                 Order createdOrder = Order.create(
-                        List.of(OrderItem.create("prod-1", 1, BigDecimal.valueOf(100))),
-                        "test@example.com",
-                        UUID.randomUUID()
-                );
+                                List.of(OrderItem.create("prod-1", 1, BigDecimal.valueOf(100))),
+                                "test@example.com",
+                                UUID.fromString(userId));
 
                 when(orderCommandService.createOrder(any(), any(), any()))
-                        .thenReturn(createdOrder);
+                                .thenReturn(createdOrder);
 
                 mockMvc.perform(post("/orders")
                                 .header("Idempotency-Key", idempotencyKey)
+                                .header("X-User-Id", userId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.status").value("PENDING"));
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.status").value("PENDING"));
 
                 verify(idempotencyService).markCompleted(eq(idempotencyKey), any(), any());
         }
@@ -88,9 +91,10 @@ class OrderControllerTest {
         void shouldReturnConflictWhenInProgress() throws Exception {
 
                 String idempotencyKey = UUID.randomUUID().toString();
+                String userId = UUID.randomUUID().toString();
 
                 when(idempotencyService.tryAcquire(idempotencyKey))
-                        .thenReturn(IdempotencyResult.inProgress());
+                                .thenReturn(IdempotencyResult.inProgress());
 
                 OrderItemRequest itemReq = new OrderItemRequest();
                 itemReq.setProductId("prod-1");
@@ -103,8 +107,9 @@ class OrderControllerTest {
 
                 mockMvc.perform(post("/orders")
                                 .header("Idempotency-Key", idempotencyKey)
+                                .header("X-User-Id", userId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                        .andExpect(status().isConflict());
+                                .andExpect(status().isConflict());
         }
 }
