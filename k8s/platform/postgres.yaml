@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+data:
+  init.sql: |
+    CREATE DATABASE orderdb;
+    CREATE DATABASE inventorydb;
+    CREATE DATABASE paymentdb;
+    CREATE DATABASE notificationdb;
+    CREATE DATABASE sagadb;
+    CREATE DATABASE fulfillmentdb;
+    CREATE USER orderuser WITH ENCRYPTED PASSWORD 'orderpass';
+    CREATE USER inventoryuser WITH ENCRYPTED PASSWORD 'inventorypass';
+    CREATE USER paymentuser WITH ENCRYPTED PASSWORD 'paymentpass';
+    CREATE USER notificationuser WITH ENCRYPTED PASSWORD 'notificationpass';
+    CREATE USER sagauser WITH ENCRYPTED PASSWORD 'sagapass';
+    CREATE USER fulfillmentuser WITH ENCRYPTED PASSWORD 'fulfillmentpass';
+    GRANT ALL PRIVILEGES ON DATABASE orderdb TO orderuser;
+    GRANT ALL PRIVILEGES ON DATABASE inventorydb TO inventoryuser;
+    GRANT ALL PRIVILEGES ON DATABASE paymentdb TO paymentuser;
+    GRANT ALL PRIVILEGES ON DATABASE notificationdb TO notificationuser;
+    GRANT ALL PRIVILEGES ON DATABASE sagadb TO sagauser;
+    GRANT ALL PRIVILEGES ON DATABASE fulfillmentdb TO fulfillmentuser;
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_PASSWORD
+              value: rootpass
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: postgres-init-scripts
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

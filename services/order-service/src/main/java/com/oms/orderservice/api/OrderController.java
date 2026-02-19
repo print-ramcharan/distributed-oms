@@ -62,6 +62,7 @@ public class OrderController {
     @ResponseStatus(HttpStatus.CREATED)
     public CreateOrderResponse createOrder(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @Valid @RequestBody CreateOrderRequest request) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new ResponseStatusException(
@@ -96,7 +97,12 @@ public class OrderController {
                     .map(this::toDomain)
                     .collect(Collectors.toList());
 
-            Order order = orderCommandService.createOrder(items, request.getCustomerEmail(), request.getUserId());
+            // Use header if present, else fallback to body (or null if both missing)
+            UUID userId = userIdHeader != null ? UUID.fromString(userIdHeader) : request.getUserId();
+            // If userId is still null, we might want to throw error or allow anonymous?
+            // For now, allow null to pass to service which might handle it.
+
+            Order order = orderCommandService.createOrder(items, request.getCustomerEmail(), userId);
 
             CreateOrderResponse response = new CreateOrderResponse(order.getId(), order.getStatus());
 
