@@ -8,9 +8,11 @@ spring:
     gateway:
       routes:
         - id: order-service
-          uri: http://order-service:8081
+          uri: http://localhost:8081
           predicates:
-            - Path=/api/orders/**
+            - Path=/api/orders,/api/orders/**
+          filters:
+            - StripPrefix=1
 
 management:
   endpoints:
