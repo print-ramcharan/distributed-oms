@@ -27,11 +27,9 @@ public class InventoryService {
 
                 return reservationRepository.findByOrderId(orderId)
                                 .orElseGet(() -> {
-                                        // Distributed Lock
                                         org.redisson.api.RLock lock = redissonClient
                                                         .getLock("inventory:lock:" + productId);
                                         try {
-                                                // Wait 10s for lock, auto-unlock after 30s
                                                 boolean acquired = lock.tryLock(10, 30,
                                                                 java.util.concurrent.TimeUnit.SECONDS);
                                                 if (!acquired) {
