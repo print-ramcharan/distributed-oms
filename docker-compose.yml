@@ -145,9 +145,9 @@ services:
       dockerfile: services/notification-service/Dockerfile
     container_name: notification-service
     ports:
-      - "8083:8083"
+      - "8084:8084"
     environment:
-      - SERVER_PORT=8083
+      - SERVER_PORT=8084
       - SPRING_DATASOURCE_URL=jdbc:postgresql://notification-db:5432/notificationdb
       - SPRING_DATASOURCE_USERNAME=notificationuser
       - SPRING_DATASOURCE_PASSWORD=notificationpass
@@ -186,9 +186,9 @@ services:
       dockerfile: services/inventory-service/Dockerfile
     container_name: inventory-service
     ports:
-      - "8084:8084"
+      - "8083:8083"
     environment:
-      - SERVER_PORT=8084
+      - SERVER_PORT=8083
       - SPRING_DATASOURCE_URL=jdbc:postgresql://inventory-db:5432/inventorydb
       - SPRING_DATASOURCE_USERNAME=inventoryuser
       - SPRING_DATASOURCE_PASSWORD=inventorypass
