@@ -164,6 +164,14 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>4.6.0</version>
+                <configuration>
+                    <simulationClass>com.oms.orderservice.simulation.OrderCreationSimulation</simulationClass>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
