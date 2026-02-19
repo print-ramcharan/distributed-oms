@@ -19,22 +19,47 @@ public class InventoryService {
         @Autowired
         private InventoryReservationRepository reservationRepository;
 
+        @Autowired
+        private org.redisson.api.RedissonClient redissonClient;
+
         @Transactional
         public InventoryReservation reserveInventory(UUID orderId, String productId, int quantity) {
-                
+
                 return reservationRepository.findByOrderId(orderId)
                                 .orElseGet(() -> {
-                                        Inventory inventory = inventoryRepository.findById(productId)
-                                                        .orElseThrow(() -> new IllegalArgumentException(
-                                                                        "Product not found: " + productId));
+                                        // Distributed Lock
+                                        org.redisson.api.RLock lock = redissonClient
+                                                        .getLock("inventory:lock:" + productId);
+                                        try {
+                                                // Wait 10s for lock, auto-unlock after 30s
+                                                boolean acquired = lock.tryLock(10, 30,
+                                                                java.util.concurrent.TimeUnit.SECONDS);
+                                                if (!acquired) {
+                                                        throw new RuntimeException(
+                                                                        "Could not acquire lock for product: "
+                                                                                        + productId);
+                                                }
 
-                                        
-                                        inventory.reserveStock(quantity);
-                                        inventoryRepository.save(inventory);
+                                                try {
+                                                        Inventory inventory = inventoryRepository.findById(productId)
+                                                                        .orElseThrow(() -> new IllegalArgumentException(
+                                                                                        "Product not found: "
+                                                                                                        + productId));
 
-                                        InventoryReservation reservation = new InventoryReservation(orderId, productId,
-                                                        quantity);
-                                        return reservationRepository.save(reservation);
+                                                        inventory.reserveStock(quantity);
+                                                        inventoryRepository.save(inventory);
+
+                                                        InventoryReservation reservation = new InventoryReservation(
+                                                                        orderId, productId,
+                                                                        quantity);
+                                                        return reservationRepository.save(reservation);
+                                                } finally {
+                                                        lock.unlock();
+                                                }
+                                        } catch (InterruptedException e) {
+                                                Thread.currentThread().interrupt();
+                                                throw new RuntimeException("Lock acquisition interrupted", e);
+                                        }
                                 });
         }
 
@@ -48,13 +73,12 @@ public class InventoryService {
                                 .orElseThrow(() -> new IllegalArgumentException(
                                                 "Product not found: " + reservation.getProductId()));
 
-                
                 inventory.releaseStock(reservation.getQuantity());
-                
+
                 reservation.release();
 
                 inventoryRepository.save(inventory);
-                reservationRepository.save(reservation); 
+                reservationRepository.save(reservation);
         }
 
         @Transactional
@@ -67,7 +91,6 @@ public class InventoryService {
                                 .orElseThrow(() -> new IllegalArgumentException(
                                                 "Product not found: " + reservation.getProductId()));
 
-                
                 inventory.confirmReservation(reservation.getQuantity());
                 reservation.confirm();
 
