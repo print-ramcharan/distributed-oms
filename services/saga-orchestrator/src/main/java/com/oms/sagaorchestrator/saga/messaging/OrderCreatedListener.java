@@ -23,14 +23,16 @@ import org.springframework.stereotype.Component;
  * Listens to order.event.created and starts the saga by dispatching
  * an InitiatePaymentCommand to the payment service via Kafka.
  *
- * Uses a Resilience4j Circuit Breaker around Kafka publish operations.
- * If the payment topic becomes unavailable or downstream failures exceed
- * the threshold, the circuit OPENS and the fallback fires:
- * → logs the failure
- * → transitions saga to PAYMENT_FAILED so compensating flow kicks in
+ * Circuit Breaker protects against Kafka broker-level failures:
+ * if kafkaTemplate.send() starts throwing (broker unavailable, topic errors),
+ * the breaker opens and the saga fails fast instead of blocking Kafka consumer
+ * threads or retrying indefinitely.
  *
- * This prevents the saga-orchestrator from hammering a broken payment service
- * indefinitely, and gives it time to recover (60s open window).
+ * For payment-service APPLICATION failures (process crash, OOM),
+ * Kafka's durability means messages wait in the topic and are processed
+ * when payment-service recovers — that's intentional temporal decoupling.
+ * The @Retryable in PaymentService handles transient failures within
+ * payment-service.
  */
 @Component
 @RequiredArgsConstructor
@@ -74,7 +76,9 @@ public class OrderCreatedListener {
                 }
 
                 try {
-                        // Wrap both Kafka publishes in a single circuit breaker call
+                        // Wrap Kafka publishes in a circuit breaker.
+                        // Trips if the Kafka broker itself becomes unreachable or topic errors
+                        // accumulate — prevents blocking consumer threads indefinitely.
                         CircuitBreaker.decorateRunnable(paymentCircuitBreaker, () -> {
                                 kafkaTemplate.send(
                                                 "order.command.advance-progress",
