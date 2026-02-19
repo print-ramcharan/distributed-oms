@@ -19,18 +19,30 @@ public class OrderQueryRepository {
     public List<OrderSummaryResponse> findRecent(int limit) {
         return jdbcTemplate.query(
                 """
-                SELECT order_id, status, created_at
-                FROM orders
-                ORDER BY created_at DESC
-                LIMIT ?
-                """,
+                        SELECT order_id, status, created_at
+                        FROM orders
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                        """,
                 (rs, i) -> new OrderSummaryResponse(
                         UUID.fromString(rs.getString("order_id")),
                         rs.getString("status"),
-                        rs.getTimestamp("created_at").toInstant()
-                ),
-                limit
-        );
+                        rs.getTimestamp("created_at").toInstant()),
+                limit);
+    }
+
+    public List<OrderSummaryResponse> findByCustomerEmail(String email) {
+        return jdbcTemplate.query(
+                """
+                        SELECT order_id, status, created_at
+                        FROM orders
+                        WHERE customer_email = ?
+                        ORDER BY created_at DESC
+                        """,
+                (rs, i) -> new OrderSummaryResponse(
+                        UUID.fromString(rs.getString("order_id")),
+                        rs.getString("status"),
+                        rs.getTimestamp("created_at").toInstant()),
+                email);
     }
 }
-

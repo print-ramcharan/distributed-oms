@@ -123,4 +123,16 @@ public class InventoryService {
                                 .map(inventory -> inventory.hasAvailableStock(quantity))
                                 .orElse(false);
         }
+
+        @Transactional
+        public void addStock(String productId, int quantity) {
+                Inventory inventory = inventoryRepository.findById(productId)
+                                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
+                inventory.addStock(quantity);
+                inventoryRepository.save(inventory);
+        }
+
+        public java.util.List<Inventory> findAll() {
+                return inventoryRepository.findAll();
+        }
 }

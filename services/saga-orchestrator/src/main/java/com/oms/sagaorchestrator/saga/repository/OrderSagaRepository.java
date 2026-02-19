@@ -12,5 +12,5 @@ import java.util.UUID;
 
 public interface OrderSagaRepository extends JpaRepository<OrderSaga, UUID> {
 
-
+    Optional<OrderSaga> findByOrderId(UUID orderId);
 }

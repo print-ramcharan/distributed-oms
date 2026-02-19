@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 public class InventoryController {
 
     private final InventoryRepository inventoryRepository;
+    private final com.oms.inventoryservice.service.InventoryService inventoryService;
 
     @PostMapping
     public ResponseEntity<Inventory> createItem(@RequestBody CreateInventoryRequest request) {
@@ -24,5 +25,16 @@ public class InventoryController {
         return inventoryRepository.findByProductId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<Inventory>> listAll() {
+        return ResponseEntity.ok(inventoryService.findAll());
+    }
+
+    @PostMapping("/{id}/add")
+    public ResponseEntity<Void> addStock(@PathVariable String id, @RequestParam int quantity) {
+        inventoryService.addStock(id, quantity);
+        return ResponseEntity.ok().build();
     }
 }

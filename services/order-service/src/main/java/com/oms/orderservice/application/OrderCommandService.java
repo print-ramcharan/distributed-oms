@@ -92,4 +92,13 @@ public class OrderCommandService {
             throw new IllegalStateException("Failed to serialize event", e);
         }
     }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void cancelOrder(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        order.advanceProgress(com.oms.eventcontracts.enums.OrderProgress.ORDER_FAILED);
+        orderRepository.save(order);
+    }
 }

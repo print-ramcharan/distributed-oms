@@ -50,6 +50,41 @@ spring:
                 key-resolver: "#{@ipKeyResolver}"
             - AddResponseHeader=X-RateLimit-Route, order-read
 
+        - id: inventory-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - RewritePath=/api/inventory/(?<segment>.*), /inventory/$\{segment}
+
+        - id: payment-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - RewritePath=/api/payments/(?<segment>.*), /payments/$\{segment}
+
+        - id: saga-orchestrator
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/sagas/**
+          filters:
+            - RewritePath=/api/sagas/(?<segment>.*), /sagas/$\{segment}
+
+        - id: fulfillment-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/fulfillment/**
+          filters:
+            - RewritePath=/api/fulfillment/(?<segment>.*), /fulfillment/$\{segment}
+
+        - id: notification-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/notifications/(?<segment>.*), /notifications/$\{segment}
+
 management:
   endpoints:
     web:
