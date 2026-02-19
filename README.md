@@ -10,7 +10,7 @@ A production-grade, event-driven microservices architecture built to demonstrate
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 *   **Event-Driven Architecture**: Fully asynchronous communication using **Apache Kafka**.
 *   **Saga Pattern**: Orchestrated distributed transactions (Order &rarr; Payment &rarr; Inventory &rarr; Fulfillment) with rollback capabilities.
@@ -33,7 +33,7 @@ A production-grade, event-driven microservices architecture built to demonstrate
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 The system consists of **7 core microservices** and platform infrastructure (Kafka, Postgres, Redis, Zipkin).
 
@@ -74,7 +74,7 @@ graph TD
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 *   **Language**: Java 17+
 *   **Framework**: Spring Boot 3.x, Spring Cloud Gateway
@@ -87,7 +87,7 @@ graph TD
 
 ---
 
-## 🏁 Getting Started
+## Getting Started
 
 ### Prerequisites
 *   Java 17 or higher
@@ -133,7 +133,7 @@ Deploy to a K8s cluster with production-like configurations (Secrets, Probes, Re
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Unit & Integration Tests
 The project has **100% test coverage** for core business logic across all microservices.
@@ -153,7 +153,7 @@ mvn gatling:test
 
 ---
 
-## 🔌 API Usage Guide
+## API Usage Guide
 
 ### 1. Authentication
 Obtain a JWT token to access protected endpoints.
@@ -191,7 +191,7 @@ curl -X GET http://localhost:8080/api/orders/{orderId} \
 
 ---
 
-## 📊 Observability
+## Observability
 
 | Tool | URL | Purpose |
 | :--- | :--- | :--- |
@@ -202,7 +202,7 @@ curl -X GET http://localhost:8080/api/orders/{orderId} \
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 distributed-oms/
@@ -224,5 +224,5 @@ distributed-oms/
 
 ---
 
-## 📜 License
+## License
 MIT License.
