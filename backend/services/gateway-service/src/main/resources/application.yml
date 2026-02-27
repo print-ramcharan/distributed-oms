@@ -1,0 +1,107 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2s
+
+  cloud:
+    gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 20
+            redis-rate-limiter.burstCapacity: 30
+            redis-rate-limiter.requestedTokens: 1
+            key-resolver: "#{@ipKeyResolver}"
+
+      routes:
+        - id: order-service-create
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/orders
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 15
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - AddResponseHeader=X-RateLimit-Route, order-create
+
+        - id: order-service-read
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/orders,/api/orders/**
+            - Method=GET
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 70
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+            - AddResponseHeader=X-RateLimit-Route, order-read
+
+        - id: inventory-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - RewritePath=/api/inventory/(?<segment>.*), /inventory/$\{segment}
+
+        - id: payment-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - RewritePath=/api/payments/(?<segment>.*), /payments/$\{segment}
+
+        - id: saga-orchestrator
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/sagas/**
+          filters:
+            - RewritePath=/api/sagas/(?<segment>.*), /sagas/$\{segment}
+
+        - id: fulfillment-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/fulfillment/**
+          filters:
+            - RewritePath=/api/fulfillment/(?<segment>.*), /fulfillment/$\{segment}
+
+        - id: notification-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/notifications/(?<segment>.*), /notifications/$\{segment}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
