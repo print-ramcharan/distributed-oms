@@ -1,0 +1,8 @@
+com/oms/fulfillmentservice/domain/FulfillmentStatus.class
+com/oms/fulfillmentservice/FulfillmentServiceApplication.class
+com/oms/fulfillmentservice/messaging/InventoryReservedConsumer.class
+com/oms/fulfillmentservice/domain/FulfillmentTask.class
+com/oms/fulfillmentservice/api/FulfillmentController.class
+com/oms/fulfillmentservice/domain/FulfillmentTaskRepository.class
+com/oms/fulfillmentservice/messaging/FulfillmentInitiatedEvent.class
+com/oms/fulfillmentservice/config/KafkaConfig.class
