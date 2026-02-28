@@ -1,6 +1,0 @@
-com/oms/notificationservice/infrastructure/kafka/OrderEventsConsumer.class
-com/oms/notificationservice/domain/NotificationRepository.class
-com/oms/notificationservice/application/EmailService.class
-com/oms/notificationservice/domain/Notification.class
-com/oms/notificationservice/NotificationServiceApplication.class
-com/oms/notificationservice/api/NotificationController.class

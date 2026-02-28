@@ -1,6 +1,0 @@
-/Users/ram/Desktop/Zentra/backend/services/notification-service/src/main/java/com/oms/notificationservice/NotificationServiceApplication.java
-/Users/ram/Desktop/Zentra/backend/services/notification-service/src/main/java/com/oms/notificationservice/api/NotificationController.java
-/Users/ram/Desktop/Zentra/backend/services/notification-service/src/main/java/com/oms/notificationservice/application/EmailService.java
-/Users/ram/Desktop/Zentra/backend/services/notification-service/src/main/java/com/oms/notificationservice/domain/Notification.java
-/Users/ram/Desktop/Zentra/backend/services/notification-service/src/main/java/com/oms/notificationservice/domain/NotificationRepository.java
-/Users/ram/Desktop/Zentra/backend/services/notification-service/src/main/java/com/oms/notificationservice/infrastructure/kafka/OrderEventsConsumer.java
