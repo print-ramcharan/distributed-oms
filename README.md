@@ -2,7 +2,7 @@
 
 > A production-grade, event-driven microservices system with a real-time control center UI.
 
-[![Branch](https://img.shields.io/badge/branch-feat%2Freal--backend--integration-blue)](https://github.com/print-ramcharan/distributed-oms/tree/feat/real-backend-integration)
+[![Branch](https://img.shields.io/badge/branch-master-blue)](https://github.com/print-ramcharan/distributed-oms/tree/master)
 [![Services](https://img.shields.io/badge/services-7%2F7%20UP-brightgreen)](#architecture)
 [![Stack](https://img.shields.io/badge/stack-Spring%20Boot%204%20%7C%20Kafka%20%7C%20React-blueviolet)](#tech-stack)
 
