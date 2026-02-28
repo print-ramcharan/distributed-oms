@@ -36,9 +36,15 @@ build/
 .vscode/
 
 ### Mac OS ###
-.DS_Store.idea/
-.idea/
 .DS_Store
+.idea/
+
+# Backup archives
+*.tar.gz
+*.tar.bz2
+
+# Node modules
+node_modules/
 
 # Debug files
 debug_*.json
