@@ -37,6 +37,8 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### JetBrains IDEs ###
 .idea/
 
 # Backup archives
