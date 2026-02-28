@@ -6,8 +6,12 @@ function DLQRow({ msg, onReplay, onDismiss }) {
     const [expanded, setExpanded] = useState(false)
     const [loading, setLoading] = useState(null)
 
-    const ago = msg.failedAt
-        ? Math.max(0, Math.round((Date.now() - new Date(msg.failedAt).getTime()) / 60000))
+    // failedAt is a Unix epoch seconds float from Spring Jackson Instant serialization
+    const failedMs = msg.failedAt
+        ? (msg.failedAt > 1e12 ? msg.failedAt : msg.failedAt * 1000)  // handle both ms and s
+        : null
+    const ago = failedMs
+        ? Math.max(0, Math.round((Date.now() - failedMs) / 60000))
         : '?'
 
     let payloadDisplay = null
@@ -44,7 +48,7 @@ function DLQRow({ msg, onReplay, onDismiss }) {
                         {msg.status && <span className={`badge badge-${msg.status === 'PENDING' ? 'warning' : msg.status === 'RETRIED' ? 'info' : 'success'}`}>{msg.status}</span>}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--danger)', marginBottom: '4px' }}>
-                        {msg.errorMessage || msg.errorMsg || 'Unknown error'}
+                        {msg.exceptionMessage || msg.errorMessage || msg.errorMsg || 'Unknown error'}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Fira Code'", display: 'flex', gap: '12px' }}>
                         <span>{msg.retryCount ?? msg.retries ?? 0} retries</span>
