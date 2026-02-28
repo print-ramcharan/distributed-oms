@@ -1,0 +1,295 @@
+@import "tailwindcss";
+
+/* =============================================
+   ZENTRA CONTROL CENTER - DESIGN SYSTEM
+   Brand: Purple→Blue→Cyan gradient sphere
+   Style: Dark Mode OLED, Glassmorphism
+   Typography: Fira Code (mono), Fira Sans (ui)
+   ============================================= */
+
+:root {
+  /* Brand Gradient (from the Zentra logo) */
+  --zentra-purple: #7B35C1;
+  --zentra-blue: #2B4CD4;
+  --zentra-cyan: #00B8D9;
+  --zentra-teal: #00D4AA;
+
+  /* Background (OLED Dark) */
+  --bg-primary: #05060F;
+  --bg-secondary: #0B0D1A;
+  --bg-card: #0F1120;
+  --bg-card-hover: #141628;
+  --bg-glass: rgba(15, 17, 32, 0.75);
+
+  /* Text */
+  --text-primary: #F0F2FF;
+  --text-secondary: #8892B0;
+  --text-muted: #4A5568;
+
+  /* Status Colors */
+  --success: #00D4AA;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #00B8D9;
+
+  /* Borders */
+  --border: rgba(123, 53, 193, 0.2);
+  --border-glow: rgba(0, 184, 217, 0.4);
+
+  /* Shadows / Glow */
+  --glow-purple: 0 0 20px rgba(123, 53, 193, 0.3);
+  --glow-cyan: 0 0 20px rgba(0, 184, 217, 0.3);
+  --glow-success: 0 0 20px rgba(0, 212, 170, 0.3);
+  --glow-danger: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Fira Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+code, .mono, .font-mono {
+  font-family: 'Fira Code', monospace;
+}
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--zentra-purple); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--zentra-blue); }
+
+/* =============================================
+   GLASS CARD
+   ============================================= */
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.glass-card:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--glow-cyan);
+}
+
+/* =============================================
+   ZENTRA GRADIENT TEXT
+   ============================================= */
+.gradient-text {
+  background: linear-gradient(135deg, var(--zentra-purple), var(--zentra-blue), var(--zentra-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Fira Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--zentra-purple), var(--zentra-blue));
+  color: white;
+  box-shadow: 0 4px 15px rgba(43, 76, 212, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(43, 76, 212, 0.5);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #7F1D1D, #EF4444);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  color: var(--zentra-cyan);
+  border-color: var(--zentra-cyan);
+}
+
+/* =============================================
+   STATUS BADGES
+   ============================================= */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.badge-success { background: rgba(0, 212, 170, 0.15); color: var(--success); border: 1px solid rgba(0, 212, 170, 0.3); }
+.badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-danger  { background: rgba(239, 68, 68, 0.15);  color: var(--danger);  border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-info    { background: rgba(0, 184, 217, 0.15);  color: var(--info);    border: 1px solid rgba(0, 184, 217, 0.3); }
+.badge-pending { background: rgba(148, 163, 184, 0.1); color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* =============================================
+   PULSE ANIMATION (live indicator)
+   ============================================= */
+.pulse-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+.pulse-success { background: var(--success); }
+.pulse-success::after { border: 2px solid var(--success); }
+
+.pulse-danger { background: var(--danger); }
+.pulse-danger::after { border: 2px solid var(--danger); }
+
+.pulse-warning { background: var(--warning); }
+.pulse-warning::after { border: 2px solid var(--warning); }
+
+@keyframes pulse-ring {
+  0% { opacity: 1; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+
+/* =============================================
+   SAGA NODE ANIMATION
+   ============================================= */
+@keyframes node-appear {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes flow-along {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px currentColor; }
+  50% { box-shadow: 0 0 24px currentColor; opacity: 0.8; }
+}
+
+.saga-node-enter {
+  animation: node-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.saga-node-active {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* =============================================
+   STAT NUMBER
+   ============================================= */
+.stat-number {
+  font-family: 'Fira Code', monospace;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* =============================================
+   LAYOUT
+   ============================================= */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 220px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.main-content {
+  margin-left: 220px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+/* =============================================
+   CHAOS - Red glow on hover
+   ============================================= */
+.chaos-card:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+}
+
+/* =============================================
+   TOPOLOGY CONNECTOR LINE
+   ============================================= */
+.connector-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--zentra-blue), transparent);
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.connector-line::after {
+  content: '';
+  position: absolute;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--zentra-cyan), transparent);
+  animation: data-flow 2s linear infinite;
+}
+
+@keyframes data-flow {
+  0% { left: -50%; }
+  100% { left: 150%; }
+}
