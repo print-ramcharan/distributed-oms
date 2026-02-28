@@ -1,99 +1,105 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard, ShoppingCart, Zap, Inbox, Activity,
-  GitBranch, Globe, ChevronRight
-} from 'lucide-react'
+import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { LayoutDashboard, ShoppingCart, Zap, Inbox, Server, Layers } from 'lucide-react'
 import Dashboard from './pages/Dashboard.jsx'
 import Simulator from './pages/Simulator.jsx'
 import ChaosHub from './pages/ChaosHub.jsx'
 import DLQViewer from './pages/DLQViewer.jsx'
+import InfraHub from './pages/InfraHub.jsx'
+import ServicesControl from './pages/ServicesControl.jsx'
 
 const NAV = [
-  { to: '/', label: 'Overview', Icon: LayoutDashboard },
-  { to: '/simulator', label: 'Order Simulator', Icon: ShoppingCart },
-  { to: '/chaos', label: 'Chaos Hub', Icon: Zap },
-  { to: '/dlq', label: 'DLQ Viewer', Icon: Inbox },
+  { path: '/', label: 'Overview', icon: LayoutDashboard },
+  { path: '/simulator', label: 'Order Simulator', icon: ShoppingCart },
+  { path: '/chaos', label: 'Chaos Hub', icon: Zap },
+  { path: '/dlq', label: 'DLQ Viewer', icon: Inbox },
+  { path: '/infra', label: 'Infrastructure', icon: Layers },
+  { path: '/services', label: 'Services Control', icon: Server },
 ]
 
 function ZentraLogo() {
   return (
-    <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* SVG Z sphere icon inspired by the logo */}
-        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="sphere-grad" cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#C060FF" />
-              <stop offset="50%" stopColor="#2B4CD4" />
-              <stop offset="100%" stopColor="#00B8D9" />
-            </radialGradient>
-          </defs>
-          <circle cx="17" cy="17" r="16" fill="url(#sphere-grad)" />
-          <path d="M10 11.5 L24 11.5 L13 17.5 L24 22.5 L10 22.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        </svg>
-        <div>
-          <div style={{ fontFamily: "'Fira Sans', sans-serif", fontWeight: 700, fontSize: '16px', letterSpacing: '1.5px', color: 'var(--text-primary)' }}>ZENTRA</div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'Fira Code', monospace", letterSpacing: '0.5px' }}>Control Center</div>
-        </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px 16px 16px', borderBottom: '1px solid var(--border)', marginBottom: '8px' }}>
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <defs>
+          <radialGradient id="logoGrad" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#A78BFA" />
+            <stop offset="40%" stopColor="#2B4CD4" />
+            <stop offset="100%" stopColor="#00B8D9" />
+          </radialGradient>
+        </defs>
+        <circle cx="16" cy="16" r="15" fill="url(#logoGrad)" />
+        <text x="16" y="21" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="Arial">Z</text>
+      </svg>
+      <div>
+        <div style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '1px', color: 'var(--text-primary)' }}>ZENTRA</div>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'Fira Code'" }}>Control Center</div>
       </div>
     </div>
   )
 }
 
 function Sidebar() {
-  const linkStyle = (isActive) => ({
-    display: 'flex', alignItems: 'center', gap: '10px',
-    padding: '9px 16px', borderRadius: '10px', margin: '2px 8px',
-    fontSize: '13px', fontWeight: isActive ? 600 : 400,
-    color: isActive ? 'var(--zentra-cyan)' : 'var(--text-secondary)',
-    background: isActive ? 'rgba(0,184,217,0.08)' : 'transparent',
-    border: isActive ? '1px solid rgba(0,184,217,0.2)' : '1px solid transparent',
-    textDecoration: 'none', cursor: 'pointer',
-    transition: 'all 0.15s ease',
-  })
-
   return (
-    <div className="sidebar">
+    <aside style={{
+      width: '220px', minHeight: '100vh', flexShrink: 0,
+      background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)',
+      display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0,
+    }}>
       <ZentraLogo />
-      <nav style={{ flex: 1, padding: '12px 0' }}>
-        <div style={{ padding: '8px 16px 6px', fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'Fira Code'", letterSpacing: '1px', textTransform: 'uppercase' }}>Navigation</div>
-        {NAV.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => linkStyle(isActive)}>
+
+      <nav style={{ padding: '0 10px', flex: 1 }}>
+        <div style={{ fontSize: '10px', fontFamily: "'Fira Code'", color: 'var(--text-muted)', letterSpacing: '1px', padding: '0 8px 8px', textTransform: 'uppercase' }}>
+          Navigation
+        </div>
+        {NAV.map(({ path, label, icon: Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            end={path === '/'}
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px',
+              borderRadius: '10px', marginBottom: '3px', textDecoration: 'none',
+              fontSize: '13px', fontWeight: isActive ? 600 : 400, transition: 'all 0.15s',
+              background: isActive ? 'rgba(0,184,217,0.1)' : 'transparent',
+              color: isActive ? 'var(--zentra-cyan)' : 'var(--text-secondary)',
+              border: isActive ? '1px solid rgba(0,184,217,0.2)' : '1px solid transparent',
+            })}
+          >
             <Icon size={15} />
             {label}
           </NavLink>
         ))}
       </nav>
 
-      {/* Bottom status */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-          <span className="pulse-dot pulse-success" />
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: "'Fira Code'" }}>All Systems UP</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+          <span className="pulse-dot pulse-success" style={{ width: '7px', height: '7px' }} />
+          <span style={{ fontFamily: "'Fira Code'", fontSize: '10px', color: 'var(--text-muted)' }}>UI: localhost:5173</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Activity size={11} color="var(--text-muted)" />
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: "'Fira Code'" }}>Kafka: Connected</span>
+        <div style={{ fontFamily: "'Fira Code'", fontSize: '10px', color: 'var(--text-muted)' }}>
+          Gateway: :8080 · Kafka: :9092
         </div>
       </div>
-    </div>
+    </aside>
   )
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <Router>
+      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
         <Sidebar />
-        <div className="main-content" style={{ flex: 1 }}>
+        <main style={{ marginLeft: '220px', flex: 1, minHeight: '100vh', overflow: 'auto' }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/simulator" element={<Simulator />} />
             <Route path="/chaos" element={<ChaosHub />} />
             <Route path="/dlq" element={<DLQViewer />} />
+            <Route path="/infra" element={<InfraHub />} />
+            <Route path="/services" element={<ServicesControl />} />
           </Routes>
-        </div>
+        </main>
       </div>
-    </BrowserRouter>
+    </Router>
   )
 }

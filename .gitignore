@@ -44,3 +44,8 @@ build/
 debug_*.json
 *_output.json
 *.log
+
+# Local dev / exploration artifacts
+frontend-framework-exploration/
+zentra-commercial-logo.mp4
+zentra-frames/
