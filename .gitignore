@@ -5,10 +5,7 @@ target/
 .kotlin
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -38,22 +35,19 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### JetBrains IDEs ###
-.idea/
-
-# Backup archives
+### Backup archives ###
 *.tar.gz
 *.tar.bz2
 
-# Node modules
+### Node modules ###
 node_modules/
 
-# Debug files
+### Debug and Logs ###
 debug_*.json
 *_output.json
 *.log
 
-# Local dev / exploration artifacts
+### Local Dev Artifacts ###
 frontend-framework-exploration/
 zentra-commercial-logo.mp4
 zentra-frames/
