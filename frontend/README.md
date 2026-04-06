@@ -1,16 +1,49 @@
-# React + Vite
+# Zentra Control Center (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The Zentra Control Center is a real-time dashboard built with React and Vite for monitoring and managing the Distributed Order Management System.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Real-time Monitoring**: Visualizes JVM metrics, Kafka consumer lag, and system health.
+- **Chaos Hub**: Interface for injecting faults (latency, service kills) into the backend.
+- **DLQ Management**: View and replay failed Kafka messages from the Dead Letter Queue.
+- **Order Simulator**: Place various order scenarios to test the Saga orchestration.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: React 18
+- **Build Tool**: Vite
+- **Styling**: TailwindCSS v4
+- **State Management**: Zustand
+- **Charts**: Recharts
+- **Icons**: Lucide React
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+
+### Installation
+
+1.  Navigate to the frontend directory:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+### Development
+
+Start the development server:
+```bash
+npm run dev
+```
+The application will be available at `http://localhost:5173`.
+
+## Environment Configuration
+
+The frontend communicates with the backend services through the API Gateway (default: `http://localhost:8080`). Configuration for the dev proxy can be found in `vite.config.js`.

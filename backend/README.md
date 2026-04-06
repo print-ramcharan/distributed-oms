@@ -13,7 +13,7 @@ A production-grade, event-driven microservices architecture built to demonstrate
 ## Key Features
 
 *   **Event-Driven Architecture**: Fully asynchronous communication using **Apache Kafka**.
-*   **Saga Pattern**: Orchestrated distributed transactions (Order &rarr; Payment &rarr; Inventory &rarr; Fulfillment) with rollback capabilities.
+*   **Saga Pattern**: Orchestrated distributed transactions (Order -> Payment -> Inventory -> Fulfillment) with rollback capabilities.
 *   **Resilience & Fault Tolerance**:
     *   **Circuit Breakers** (Resilience4j) to prevent cascading failures.
     *   **Retry Mechanisms** with exponential backoff.
