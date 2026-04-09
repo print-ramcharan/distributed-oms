@@ -191,7 +191,7 @@
             <plugin>
                 <groupId>io.gatling</groupId>
                 <artifactId>gatling-maven-plugin</artifactId>
-                <version>4.6.0</version>
+                <version>4.21.0</version>
                 <configuration>
                     <simulationClass>com.oms.orderservice.simulation.OrderCreationSimulation</simulationClass>
                 </configuration>
