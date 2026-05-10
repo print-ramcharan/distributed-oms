@@ -16,7 +16,7 @@ const SERVICE_PORTS = {
 const proxy = {}
 for (const [name, port] of Object.entries(SERVICE_PORTS)) {
   proxy[`/proxy/${name}`] = {
-    target: `http://localhost:${port}`,
+    target: `http://127.0.0.1:${port}`,
     changeOrigin: true,
     rewrite: (path) => path.replace(new RegExp(`^/proxy/${name}`), ''),
   }
@@ -24,13 +24,13 @@ for (const [name, port] of Object.entries(SERVICE_PORTS)) {
 
 // Expose Prometheus and Kafka UI through proxy too
 proxy['/proxy/prometheus'] = {
-  target: 'http://localhost:9090',
+  target: 'http://127.0.0.1:9090',
   changeOrigin: true,
   rewrite: (path) => path.replace(/^\/proxy\/prometheus/, ''),
 }
 
 proxy['/proxy/kafka-ui'] = {
-  target: 'http://localhost:8090',
+  target: 'http://127.0.0.1:8090',
   changeOrigin: true,
   rewrite: (path) => path.replace(/^\/proxy\/kafka-ui/, ''),
 }

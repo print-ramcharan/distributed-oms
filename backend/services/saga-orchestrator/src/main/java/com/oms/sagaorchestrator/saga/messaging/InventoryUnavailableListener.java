@@ -51,9 +51,10 @@ public class InventoryUnavailableListener {
 
                         
                         log.info("→ Transitioning saga to INVENTORY_FAILED...");
+                        saga.setReason(event.getReason());
                         saga.markInventoryFailed();
-                        sagaRepository.save(saga);
-                        log.info("✓ Saga transitioned to INVENTORY_FAILED");
+                        sagaRepository.saveAndFlush(saga);
+                        log.info("✓ Saga transitioned to INVENTORY_FAILED with reason: {}", event.getReason());
 
                         log.info("→ Transitioning saga to COMPENSATING...");
                         saga.markCompensating();

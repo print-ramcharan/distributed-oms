@@ -4,6 +4,7 @@ import com.oms.eventcontracts.events.InventoryReservedEvent;
 import com.oms.eventcontracts.events.InventoryUnavailableEvent;
 import com.oms.eventcontracts.events.OrderCreatedEvent;
 import com.oms.eventcontracts.events.PaymentCompletedEvent;
+import com.oms.eventcontracts.events.PaymentRefundedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
@@ -39,7 +40,7 @@ public class KafkaConfig {
         @Bean
         public DefaultErrorHandler sagaErrorHandler(
                         DeadLetterPublishingRecoverer recoverer) {
-                FixedBackOff backOff = new FixedBackOff(2000L, 3); 
+                FixedBackOff backOff = new FixedBackOff(500L, 2); // 500ms × 2 retries = fast recovery
                 return new DefaultErrorHandler(recoverer, backOff);
         }
 
@@ -190,6 +191,31 @@ public class KafkaConfig {
                 factory.setCommonErrorHandler(sagaErrorHandler);
                 factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
 
+                return factory;
+        }
+
+        @Bean
+        public ConsumerFactory<String, PaymentRefundedEvent> paymentRefundedConsumerFactory() {
+                Map<String, Object> props = new HashMap<>();
+                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+                props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+                props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+                props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
+                JsonDeserializer<PaymentRefundedEvent> deserializer = new JsonDeserializer<>(PaymentRefundedEvent.class);
+                deserializer.addTrustedPackages("com.oms.eventcontracts");
+                deserializer.setUseTypeHeaders(false);
+
+                return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
+        }
+
+        @Bean
+        public ConcurrentKafkaListenerContainerFactory<String, PaymentRefundedEvent> paymentRefundedKafkaListenerContainerFactory(
+                        DefaultErrorHandler sagaErrorHandler) {
+                ConcurrentKafkaListenerContainerFactory<String, PaymentRefundedEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+                factory.setConsumerFactory(paymentRefundedConsumerFactory());
+                factory.setCommonErrorHandler(sagaErrorHandler);
+                factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
                 return factory;
         }
 

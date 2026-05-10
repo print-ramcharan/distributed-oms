@@ -58,7 +58,7 @@ public class OrderController {
         return ResponseEntity.ok(orderQueryRepository.findRecent(limit));
     }
 
-    @PostMapping
+    @PostMapping(consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
     public CreateOrderResponse createOrder(
             @RequestHeader("Idempotency-Key") String idempotencyKey,

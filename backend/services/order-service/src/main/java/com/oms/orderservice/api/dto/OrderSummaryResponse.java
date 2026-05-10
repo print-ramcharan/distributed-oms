@@ -6,5 +6,6 @@ import java.util.UUID;
 public record OrderSummaryResponse(
         UUID orderId,
         String status,
-        Instant createdAt
+        Instant createdAt,
+        String productId
 ) {}

@@ -3,6 +3,7 @@ package com.oms.sagaorchestrator.saga.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Table(name = "order_sagas")
 @NoArgsConstructor
 @Getter
+@Setter
 public class OrderSaga {
 
     @Id
@@ -28,6 +30,8 @@ public class OrderSaga {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SagaState state;
+
+    private String reason;
 
 
     @Column(nullable = false, updatable = false)

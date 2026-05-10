@@ -28,15 +28,20 @@ const SVC = {
 async function api(url, options = {}) {
     try {
         const res = await fetch(url, {
-            headers: { 'Content-Type': 'application/json', ...options.headers },
             ...options,
+            headers: { 'Content-Type': 'application/json', ...options.headers },
         })
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+        if (!res.ok) {
+            const errorText = await res.text()
+            let errorData = {}
+            try { errorData = JSON.parse(errorText) } catch (e) { }
+            throw new Error(errorData.message || `${res.status} ${res.statusText}`)
+        }
         const text = await res.text()
         return text ? JSON.parse(text) : {}
     } catch (err) {
         console.warn(`[API] ${url} failed:`, err.message)
-        return null
+        throw err // Throw instead of returning null so the caller can handle it
     }
 }
 
@@ -54,14 +59,18 @@ export const SERVICE_DEFS = [
 ]
 
 export async function fetchServiceHealth(svcDef) {
-    const data = await api(`${svcDef.svc}/actuator/health`)
-    if (!data) return { id: svcDef.id, name: svcDef.name, port: svcDef.port, status: 'DOWN', components: {} }
-    return {
-        id: svcDef.id,
-        name: svcDef.name,
-        port: svcDef.port,
-        status: data.status === 'UP' ? 'UP' : 'DOWN',
-        components: data.components || {},
+    try {
+        const data = await api(`${svcDef.svc}/actuator/health`)
+        if (!data) return { id: svcDef.id, name: svcDef.name, port: svcDef.port, status: 'DOWN', components: {} }
+        return {
+            id: svcDef.id,
+            name: svcDef.name,
+            port: svcDef.port,
+            status: data.status || 'UP',
+            components: data.components || {}
+        }
+    } catch (e) {
+        return { id: svcDef.id, name: svcDef.name, port: svcDef.port, status: 'DOWN', components: {} }
     }
 }
 
@@ -100,8 +109,7 @@ export async function fetchServiceMetrics(svcDef) {
 }
 
 export async function fetchAllServiceMetrics() {
-    // Only poll services that are likely UP (order + saga are main ones)
-    return Promise.all(SERVICE_DEFS.slice(0, 6).map(fetchServiceMetrics))
+    return Promise.all(SERVICE_DEFS.map(fetchServiceMetrics))
 }
 
 // =============================================
@@ -135,18 +143,24 @@ export async function fetchPrometheusMetrics() {
 //  ORDERS
 // =============================================
 export async function fetchOrders(limit = 50) {
-    return await api(`${SVC.order}/orders?limit=${limit}`) ?? []
+    try {
+        const data = await api(`${SVC.order}/orders?limit=${limit}`)
+        return data || []
+    } catch (e) {
+        return []
+    }
 }
 
 export async function createOrder(customerEmail, items) {
     const idempotencyKey = crypto.randomUUID()
+    const userId = crypto.randomUUID()
     return await api(`${SVC.order}/orders`, {
         method: 'POST',
         headers: {
             'Idempotency-Key': idempotencyKey,
-            'X-User-Id': crypto.randomUUID(),
+            'X-User-Id': userId,
         },
-        body: JSON.stringify({ customerEmail, items }),
+        body: JSON.stringify({ customerEmail, items, userId }),
     })
 }
 
@@ -155,14 +169,23 @@ export async function cancelOrder(orderId) {
 }
 
 export async function fetchOrderById(orderId) {
-    return await api(`${SVC.order}/orders/${orderId}`)
+    try {
+        return await api(`${SVC.order}/orders/${orderId}`)
+    } catch (e) {
+        return null
+    }
 }
 
 // =============================================
 //  SAGA
 // =============================================
 export async function fetchSaga(orderId) {
-    return await api(`${SVC.saga}/sagas/${orderId}`)
+    try {
+        return await api(`${SVC.saga}/sagas/${orderId}`)
+    } catch (e) {
+        // 404 = saga not created yet, return null and let the poller retry
+        return null
+    }
 }
 
 // =============================================
@@ -170,6 +193,13 @@ export async function fetchSaga(orderId) {
 // =============================================
 export async function fetchInventory() {
     return await api(`${SVC.inventory}/inventory`) ?? []
+}
+
+export async function createInventoryItem(productId, initialStock) {
+    return await api(`${SVC.inventory}/inventory`, {
+        method: 'POST',
+        body: JSON.stringify({ productId, initialStock }),
+    })
 }
 
 export async function restockProduct(productId, quantity) {
@@ -213,10 +243,15 @@ export async function fetchChaosStatus() {
 }
 
 export async function toggleKillSwitch(serviceId, enable) {
-    // Each service has its own /chaos/kill-service endpoint
     const svcDef = SERVICE_DEFS.find(s => s.id === serviceId)
     if (!svcDef) return null
-    return await api(`${svcDef.svc}/chaos/kill-service?enable=${enable}`, { method: 'POST' })
+    try {
+        return await api(`${svcDef.svc}/chaos/kill-service?enable=${enable}`, { method: 'POST' })
+    } catch (e) {
+        // Chaos endpoint may not be implemented — log and continue without blocking order flow
+        console.warn(`[Chaos] Kill-switch not available for ${serviceId}:`, e.message)
+        return null
+    }
 }
 
 export async function toggleLatency(serviceId, enable) {

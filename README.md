@@ -1,6 +1,6 @@
-# Zentra - Distributed Order Management System
+# Zentra - Distributed Order Management System (OMS)
 
-> A production-grade, event-driven microservices system with a real-time control center UI.
+A production-grade, event-driven microservices ecosystem demonstrating the **Saga Orchestration Pattern**. Built for extreme observability, Zentra provides a real-time Control Center to monitor distributed transaction lifecycles, Kafka event streams, and system capacity under sustained load.
 
 [![Branch](https://img.shields.io/badge/branch-master-blue)](https://github.com/print-ramcharan/distributed-oms/tree/master)
 [![Services](https://img.shields.io/badge/services-7%2F7%20UP-brightgreen)](#architecture)
@@ -8,180 +8,119 @@
 
 ---
 
-## Live Control Center
+## Control Center
 
-### System Overview - All 7 Services UP
+The Zentra Control Center is a centralized operations hub that provides deep visibility into the distributed state of the system, focusing on real-time transaction data and system health.
 
-Real-time JVM metrics (CPU, Heap, Threads, HTTP requests) per service pulled from Spring Boot Actuator. Prometheus metrics (HTTP rate, Kafka consumer lag, error rate) updated every 5 seconds.
+### System Health & Real-time Metrics
+Monitor JVM metrics, request throughput, and error rates across all 7 microservices. Integrated with Prometheus and Spring Actuator for live telemetry and health monitoring.
 
-![Dashboard - All 7 Services UP](docs/screenshots/dashboard_all_services.png)
-
----
-
-### DLQ Viewer - Dead Letter Queue Management
-
-Messages that fail after 3 Kafka retry attempts land here. Inspect the raw payload, view the full exception, and replay directly back to Kafka or dismiss the record.
-
-![DLQ Viewer](docs/screenshots/dlq_viewer.png)
+![System Overview](docs/screenshots/dashboard.png)
 
 ---
 
-### Chaos Hub - Fault Injection
+### Order Simulation & Saga Lifecycle
+Watch complex distributed transactions execute across microservices. Zentra visualizes the Saga state machine in real-time, providing clear insight into cross-service communication, transaction IDs, and execution timelines.
 
-Kill individual services, inject artificial network latency (ms), or set a hard TPS throttle - all wired to real backend `/chaos/*` endpoints. Circuit breaker status updates live.
+![Order Simulation](docs/screenshots/order_simulation.png)
 
-![Chaos Hub](docs/screenshots/chaos_hub.png)
+#### Real-time Database Audit
+The system tracks the full history of orders directly from the database, showing the final state (Completed/Cancelled) for every transaction initiated by the simulator or load tester.
 
----
-
-### Services Control - Live Log Level Management
-
-Change any Spring logger's level (TRACE / DEBUG / INFO / WARN / ERROR) in real-time via `POST /actuator/loggers` - no restart needed. Also exposes full environment config per service.
-
-![Services Control](docs/screenshots/services_control.png)
+![Saga Lifecycle](docs/screenshots/saga_lifecycle.png)
 
 ---
 
-### Order Simulator
+### Distributed Resilience (Rollback Logic)
+When a downstream service fails or business rules are violated (e.g., Payment Failure), Zentra demonstrates industrial-grade resilience by triggering compensating transactions to restore system-wide consistency.
 
-Place orders with preset scenarios (Happy Path, Payment Failure, Stock Out) and watch them flow through the saga orchestrator in real time.
-
-![Order Simulator](docs/screenshots/order_simulator.png)
+![Rollback Logic](docs/screenshots/rollback_logic.png)
 
 ---
 
-### Infrastructure Hub
+### Inventory Management
+Manage system state directly through the Control Center. The Inventory Manager allows for real-time stock adjustments and product tracking, serving as the source of truth for the Saga Orchestrator.
 
-Embedded live views of Grafana dashboards, Kafka UI (topic browser, consumer lag, message inspector), and Zipkin distributed traces - all in one place.
+![Inventory Management](docs/screenshots/inventory_management.png)
 
-![Infrastructure Hub](docs/screenshots/infra_hub.png)
+---
+
+### Kafka Telemetry & Event Streams
+A live diagnostic tool for inspecting Kafka message streams. Built with Server-Sent Events (SSE), it allows developers to audit raw JSON payloads and metadata for all 13 system topics, processing thousands of events in real-time.
+
+![Kafka Telemetry](docs/screenshots/kafka_telemetry.png)
+
+---
+
+### Scenario-Based Load Tester
+A background load generator designed to stress-test saga resilience. Monitor real-time performance metrics including throughput (RPS), success rates, and latency percentiles through dynamic sparklines.
+
+![Load Test Metrics](docs/screenshots/load_test_metrics.png)
 
 ---
 
 ## Architecture
 
-```
-                     +---------------------------------------------+
-                     |         Zentra Control Center (React)         |
-                     |         localhost:5173  (Vite dev proxy)      |
-                     +------------------+--------------------------+
-                                        | REST + Actuator
-               +------------------------+------------------------+
-               |                        |                        |
-               v                        v                        v
-        API Gateway :8080       Order Service :8081      Payment :8082
-        (Spring Cloud)          (Saga initiator)         (Stripe-style)
-               |                        |
-               |              Kafka (localhost:9092)
-               |         +--------------+--------------+
-               v         v              v              v
-          Inventory    Saga Orch.  Notification   Fulfillment
-            :8083        :8085       :8084          :8086
+Zentra is composed of 7 independent microservices communicating primarily via **Apache Kafka**.
 
-Observability: Prometheus :9090 -> Grafana :3000
-Tracing:       Zipkin :9411
-Kafka UI:      localhost:8090
+```mermaid
+graph TD
+    UI[Zentra Control Center] --> GW[API Gateway :8080]
+    GW --> OR[Order Service :8081]
+    OR -.-> K((Kafka))
+    SO[Saga Orchestrator :8085] <--> K
+    PY[Payment Service :8082] <--> K
+    IV[Inventory Service :8083] <--> K
+    FL[Fulfillment Service :8086] <--> K
+    NT[Notification Service :8084] <--> K
 ```
 
-### Saga Pattern Design
-
-The system implements the **Saga Orchestration** pattern to maintain data consistency across distributed services. Each order undergoes a multi-step workflow coordinated by the `Saga Orchestrator`:
-
-#### Saga State Machine
-1.  **STARTED**: The order process has begun.
-2.  **PAYMENT_INITIATED**: A payment command has been sent to the Payment Service.
-3.  **PAYMENT_COMPLETED**: Payment was successful; moving to the next stage.
-4.  **PAYMENT_FAILED**: Payment failed; the saga is terminated or enters a compensating transaction.
-
-#### Resilience Features
--   **Dead Letter Queue (DLQ)**: Failed Kafka events after 3 retries are persisted to Postgres and surfaced in the DLQ Viewer for manual replay.
--   **Chaos Engineering**: Capabilities to kill services, inject latency, and throttle TPS are built into the control center for real-time fault injection testing.
+### Core Design Principles
+- **Saga Orchestration**: Centralized coordination of distributed transactions using a state-machine driven Orchestrator.
+- **Event-Driven Architecture**: Fully decoupled services using Kafka as the backbone for command and event propagation.
+- **Observability First**: Deep integration with Spring Boot Actuator, Micrometer, and Prometheus for real-time visibility.
+- **Resilience**: Automated retries, Dead Letter Queues (DLQ), and compensating transactions for all failure scenarios.
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+|:---|:---|
 | **Backend** | Spring Boot 4.0, Spring Kafka, Spring Data JPA, Spring Actuator |
-| **Frontend** | React 18, Vite, TailwindCSS v4, Zustand, Recharts |
-| **Messaging** | Apache Kafka 3.x (Zookeeper mode) |
-| **Databases** | PostgreSQL 15 (one DB per service) |
-| **Cache / Lock** | Redis 7 (rate limiting, distributed inventory lock) |
-| **Observability** | Prometheus + Grafana, Zipkin (distributed tracing), Micrometer |
-| **Gateway** | Spring Cloud Gateway (reactive, Redis rate limiting) |
-| **Infra** | Docker Compose (14 containers) |
+| **Frontend** | React 18, Vite, Tailwind CSS v4, Lucide Icons, Recharts |
+| **Messaging** | Apache Kafka (Event Store & Message Broker) |
+| **Databases** | PostgreSQL (Per-service isolated schemas) |
+| **Cache & Lock** | Redis (Distributed locking & Rate Limiting) |
+| **Observability** | Prometheus, Grafana, Zipkin (Distributed Tracing) |
 
 ---
 
-## Running Locally
+## Getting Started
 
-### 1. Start Infrastructure
-
+### 1. Infrastructure Setup
+Spin up the 14-container environment using Docker Compose:
 ```bash
 cd backend
-docker compose up -d \
-  zookeeper kafka redis zipkin prometheus grafana kafka-ui mailhog \
-  order-db payment-db saga-db inventory-db notification-db fulfillment-db
+docker compose up -d
 ```
 
 ### 2. Start Backend Services
-
-Each service in its own terminal:
-
 ```bash
 cd backend
-java -jar services/order-service/target/order-service-*.jar
-java -jar services/payment-service/target/payment-service-*.jar
-java -jar services/inventory-service/target/inventory-service-*.jar
-java -jar services/saga-orchestrator/target/saga-orchestrator-*.jar
-java -jar services/notification-service/target/notification-service-*.jar
-java -jar services/fulfillment-service/target/fulfillment-service-*.jar
-java -jar services/gateway-service/target/gateway-service-*.jar
+mvn clean package -DskipTests
+# Run the individual service jars
 ```
 
-Or build first (if JARs don't exist):
-
+### 3. Start Control Center
 ```bash
-cd backend && mvn package -DskipTests -T 4
+cd frontend
+npm install
+npm run dev
 ```
 
-### 3. Start Frontend
-
-```bash
-cd frontend && npm install && npm run dev
-# -> http://localhost:5173
-```
+Visit `http://localhost:5173` to start simulating orders and monitoring system load.
 
 ---
 
-## Technical Challenges & Solutions
-
-### Serialization Handling
--   **Instant Type Support**: Configured Jackson with `jackson-datatype-jsr310` to handle `java.time.Instant` serialization for Kafka events.
--   **Shared Contracts**: Centralized event definitions in a dedicated `event-contracts` module to avoid `ClassNotFoundException` across microservice boundaries.
-
-### Error Handling Strategy
--   **Deserialization Failures**: Implemented `ErrorHandlingDeserializer` to prevent "poison-pill" records from blocking Kafka partitions.
--   **Exponential Backoff**: Configured Kafka retries with backoff strategies to handle transient infrastructure blips.
-
----
-
-## Service Ports
-
-| Service | Port | DB Port |
-|---------|------|---------|
-| API Gateway | 8080 | - |
-| Order Service | 8081 | 5433 |
-| Payment Service | 8082 | 5434 |
-| Inventory Service | 8083 | 5436 |
-| Notification Service | 8084 | 5437 |
-| Saga Orchestrator | 8085 | 5435 |
-| Fulfillment Service | 8086 | 5438 |
-| **Prometheus** | **9090** | - |
-| **Grafana** | **3000** | - |
-| **Kafka UI** | **8090** | - |
-| **Zipkin** | **9411** | - |
-| **Mailhog (SMTP UI)** | **8025** | - |
-| **Redis** | **6379** | - |
-| **Kafka** | **9092** | - |
+© 2026 Zentra Distributed OMS.

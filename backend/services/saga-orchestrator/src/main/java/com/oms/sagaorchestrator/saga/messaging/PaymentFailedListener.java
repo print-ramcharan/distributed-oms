@@ -38,7 +38,8 @@ public class PaymentFailedListener {
 
         );
 
+        saga.setReason(event.getReason());
         saga.markPaymentFailed();
-        sagaRepository.save(saga);
+        sagaRepository.saveAndFlush(saga);
     }
 }

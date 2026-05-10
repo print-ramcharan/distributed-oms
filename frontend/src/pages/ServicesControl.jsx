@@ -1,12 +1,27 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, Edit2, Check, X, Eye, ChevronDown, ChevronRight } from 'lucide-react'
+import { RefreshCw, Edit2, Check, X, Eye, ChevronDown, ChevronRight, Activity } from 'lucide-react'
 import { SERVICE_DEFS, fetchAllServiceHealth, fetchLoggers, setLogLevel, fetchEnv } from '../api.js'
 
 const LOG_LEVELS = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'OFF']
 
 function LogLevelBadge({ level }) {
-    const color = { TRACE: 'var(--text-muted)', DEBUG: 'var(--zentra-cyan)', INFO: 'var(--success)', WARN: 'var(--warning)', ERROR: 'var(--danger)', OFF: 'var(--text-muted)' }[level] || 'var(--text-muted)'
-    return <span className="badge" style={{ background: `${color}18`, color, border: `1px solid ${color}44`, fontFamily: "'Fira Code'", fontSize: '10px' }}>{level || 'INHERITED'}</span>
+    const getLevelStyle = (l) => {
+        switch(l) {
+            case 'TRACE': return 'bg-gray-50 text-gray-500 border-gray-200'
+            case 'DEBUG': return 'bg-blue-50 text-blue-600 border-blue-200'
+            case 'INFO': return 'bg-emerald-50 text-emerald-600 border-emerald-200'
+            case 'WARN': return 'bg-orange-50 text-orange-600 border-orange-200'
+            case 'ERROR': return 'bg-red-50 text-red-600 border-red-200'
+            case 'OFF': return 'bg-gray-100 text-gray-400 border-gray-200'
+            default: return 'bg-gray-50 text-gray-500 border-gray-200'
+        }
+    }
+    
+    return (
+        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold font-mono tracking-wider border ${getLevelStyle(level)}`}>
+            {level || 'INHERITED'}
+        </span>
+    )
 }
 
 function ServicePanel({ svcDef }) {
@@ -45,32 +60,32 @@ function ServicePanel({ svcDef }) {
         : null
 
     return (
-        <div className="glass-card" style={{ marginBottom: '10px', overflow: 'hidden' }}>
+        <div className="bg-white border border-gray-200 rounded-xl mb-4 shadow-sm overflow-hidden transition-all">
             <div
                 onClick={toggleExpand}
-                style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                className={`p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors ${expanded ? 'bg-gray-50/50' : ''}`}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {expanded ? <ChevronDown size={14} color="var(--text-muted)" /> : <ChevronRight size={14} color="var(--text-muted)" />}
-                    <span style={{ fontWeight: 600, fontSize: '13px' }}>{svcDef.name}</span>
-                    <span style={{ fontFamily: "'Fira Code'", fontSize: '10px', color: 'var(--text-muted)' }}>:{svcDef.port}</span>
+                <div className="flex items-center gap-3">
+                    {expanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+                    <span className="font-semibold text-sm text-gray-900">{svcDef.name}</span>
+                    <span className="font-mono text-[10px] text-gray-400">:{svcDef.port}</span>
                 </div>
-                {loading && <RefreshCw size={13} color="var(--text-muted)" style={{ animation: 'spin 1s linear infinite' }} />}
+                {loading && <RefreshCw size={14} className="text-gray-400 animate-spin" />}
             </div>
 
             {expanded && (
-                <div style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="border-t border-gray-200">
                     {/* Tabs */}
-                    <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)' }}>
+                    <div className="flex border-b border-gray-200 bg-gray-50/30">
                         {['loggers', 'environment'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setTab(t)}
-                                style={{
-                                    padding: '8px 18px', fontSize: '12px', background: tab === t ? 'rgba(0,184,217,0.07)' : 'transparent',
-                                    border: 'none', borderBottom: `2px solid ${tab === t ? 'var(--zentra-cyan)' : 'transparent'}`,
-                                    color: tab === t ? 'var(--zentra-cyan)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: "'Fira Code'"
-                                }}
+                                className={`px-5 py-2.5 text-xs font-mono font-medium tracking-wide transition-colors ${
+                                    tab === t 
+                                        ? 'text-blue-600 border-b-2 border-blue-500 bg-blue-50/30' 
+                                        : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700 hover:bg-gray-50'
+                                }`}
                             >
                                 {t}
                             </button>
@@ -78,61 +93,68 @@ function ServicePanel({ svcDef }) {
                     </div>
 
                     {tab === 'loggers' && (
-                        <div style={{ padding: '14px 20px', maxHeight: '280px', overflowY: 'auto' }}>
+                        <div className="p-4 max-h-[400px] overflow-y-auto">
                             {loggerEntries.length === 0 ? (
-                                <div style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '12px 0' }}>
+                                <div className="text-gray-500 text-xs py-4 text-center">
                                     {loggers === null ? 'Failed to connect — is the service running?' : 'No configured loggers found.'}
                                 </div>
                             ) : (
-                                loggerEntries.map(([name, info]) => (
-                                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.03)', gap: '8px' }}>
-                                        <span style={{ fontFamily: "'Fira Code'", fontSize: '11px', color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {name}
-                                        </span>
-                                        {editLevel[name] ? (
-                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                <select
-                                                    value={editLevel[name]}
-                                                    onChange={e => setEditLevel(prev => ({ ...prev, [name]: e.target.value }))}
-                                                    style={{ fontSize: '11px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: '4px', padding: '2px 4px', fontFamily: "'Fira Code'" }}
-                                                >
-                                                    {LOG_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                                                </select>
-                                                <button onClick={() => applyLevel(name, editLevel[name])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)' }}><Check size={12} /></button>
-                                                <button onClick={() => setEditLevel({})} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}><X size={12} /></button>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <LogLevelBadge level={info.configuredLevel} />
-                                                <button
-                                                    onClick={() => setEditLevel({ [name]: info.configuredLevel || 'INFO' })}
-                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px' }}
-                                                >
-                                                    <Edit2 size={11} />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
+                                <div className="space-y-1">
+                                    {loggerEntries.map(([name, info]) => (
+                                        <div key={name} className="flex justify-between items-center py-2 px-3 hover:bg-gray-50 rounded-lg group transition-colors">
+                                            <span className="font-mono text-xs text-gray-600 flex-1 overflow-hidden text-ellipsis whitespace-nowrap pr-4">
+                                                {name}
+                                            </span>
+                                            {editLevel[name] ? (
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={editLevel[name]}
+                                                        onChange={e => setEditLevel(prev => ({ ...prev, [name]: e.target.value }))}
+                                                        className="text-xs bg-white border border-gray-300 text-gray-900 rounded px-2 py-1 font-mono focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    >
+                                                        {LOG_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                                                    </select>
+                                                    <button onClick={() => applyLevel(name, editLevel[name])} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check size={14} /></button>
+                                                    <button onClick={() => setEditLevel({})} className="p-1 text-red-500 hover:bg-red-50 rounded"><X size={14} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-3">
+                                                    <LogLevelBadge level={info.configuredLevel} />
+                                                    <button
+                                                        onClick={() => setEditLevel({ [name]: info.configuredLevel || 'INFO' })}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                                    >
+                                                        <Edit2 size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     )}
 
                     {tab === 'environment' && (
-                        <div style={{ padding: '14px 20px', maxHeight: '280px', overflowY: 'auto' }}>
+                        <div className="p-4 max-h-[400px] overflow-y-auto">
                             {!envProps ? (
-                                <div style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '12px 0' }}>
+                                <div className="text-gray-500 text-xs py-4 text-center">
                                     {env === null ? 'Failed to connect — is the service running?' : 'No environment properties found.'}
                                 </div>
                             ) : (
-                                Object.entries(envProps).slice(0, 25).map(([key, val]) => (
-                                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)', gap: '12px', alignItems: 'flex-start' }}>
-                                        <span style={{ fontFamily: "'Fira Code'", fontSize: '11px', color: 'var(--zentra-cyan)', minWidth: '200px' }}>{key}</span>
-                                        <span style={{ fontFamily: "'Fira Code'", fontSize: '11px', color: val.value?.toString().includes('pass') || val.value?.toString().includes('secret') ? 'var(--text-muted)' : 'var(--text-secondary)', textAlign: 'right', flex: 1 }}>
-                                            {val.value?.toString().includes('pass') || val.value?.toString().includes('secret') ? '••••••••' : String(val.value)}
-                                        </span>
-                                    </div>
-                                ))
+                                <div className="space-y-1.5">
+                                    {Object.entries(envProps).slice(0, 25).map(([key, val]) => {
+                                        const isSecret = val.value?.toString().toLowerCase().includes('pass') || val.value?.toString().toLowerCase().includes('secret');
+                                        return (
+                                            <div key={key} className="flex justify-between py-2 px-3 bg-gray-50 rounded-lg items-start gap-4">
+                                                <span className="font-mono text-[11px] text-blue-600 min-w-[200px] break-all">{key}</span>
+                                                <span className={`font-mono text-[11px] text-right flex-1 break-all ${isSecret ? 'text-gray-400 tracking-widest' : 'text-gray-700'}`}>
+                                                    {isSecret ? '••••••••' : String(val.value)}
+                                                </span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             )}
                         </div>
                     )}
@@ -152,36 +174,44 @@ export default function ServicesControl() {
     }, [])
 
     return (
-        <div style={{ padding: '28px' }}>
-            <div style={{ marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '4px' }}>Services Control</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+        <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
+            <div>
+                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+                    <Activity className="text-blue-600" size={24} /> Services Control
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
                     Manage log levels and inspect Spring environment properties in real-time via Actuator.
                     Changes take effect immediately without restart.
                 </p>
             </div>
 
             {/* Health summary bar */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                {health.map(svc => (
-                    <div key={svc.id} style={{
-                        display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px',
-                        background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', fontSize: '11px'
-                    }}>
-                        <span className={`pulse-dot pulse-${svc.status === 'UP' ? 'success' : 'danger'}`} />
-                        <span style={{ marginLeft: '6px', color: 'var(--text-secondary)' }}>{svc.name}</span>
-                        <span className={`badge badge-${svc.status === 'UP' ? 'success' : 'danger'}`} style={{ fontSize: '9px' }}>{svc.status}</span>
-                    </div>
-                ))}
+            <div className="flex flex-wrap gap-3 mb-6">
+                {health.map(svc => {
+                    const isUp = svc.status === 'UP'
+                    return (
+                        <div key={svc.id} className="flex items-center gap-2.5 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <span className={`w-2 h-2 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                            <span className="text-xs font-semibold text-gray-700">{svc.name}</span>
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold font-mono tracking-wider uppercase ring-1 ring-inset ${
+                                isUp ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-red-50 text-red-700 ring-red-600/20'
+                            }`}>
+                                {svc.status}
+                            </span>
+                        </div>
+                    )
+                })}
             </div>
 
-            <div style={{ marginBottom: '14px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: "'Fira Code'" }}>
+            <div className="text-xs text-gray-400 font-mono tracking-wide uppercase mb-4">
                 Click a service to expand and manage loggers / view environment config ↓
             </div>
 
-            {SERVICE_DEFS.map(svc => (
-                <ServicePanel key={svc.id} svcDef={svc} />
-            ))}
+            <div className="space-y-4">
+                {SERVICE_DEFS.map(svc => (
+                    <ServicePanel key={svc.id} svcDef={svc} />
+                ))}
+            </div>
         </div>
     )
 }

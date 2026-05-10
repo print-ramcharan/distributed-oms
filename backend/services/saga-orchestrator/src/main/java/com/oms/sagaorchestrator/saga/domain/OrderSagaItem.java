@@ -1,5 +1,6 @@
 package com.oms.sagaorchestrator.saga.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,7 @@ public class OrderSagaItem {
     @Column(nullable = false)
     private BigDecimal price;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private OrderSaga saga;
