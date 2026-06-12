@@ -1,16 +1,9 @@
 package com.oms.eventcontracts.events;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PaymentRefundedEvent {
 
     private UUID orderId;
@@ -27,8 +20,7 @@ public class PaymentRefundedEvent {
             UUID paymentId,
             BigDecimal amount,
             String reason,
-            Instant refundedAt
-    ) {
+            Instant refundedAt) {
         this.orderId = orderId;
         this.paymentId = paymentId;
         this.amount = amount;
