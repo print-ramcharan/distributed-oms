@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -32,6 +33,9 @@ class OrderCommandServiceTest {
 
     @Mock
     private ObjectMapper objectMapper;
+
+    @Spy
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
 
     @InjectMocks
     private OrderCommandService orderCommandService;
