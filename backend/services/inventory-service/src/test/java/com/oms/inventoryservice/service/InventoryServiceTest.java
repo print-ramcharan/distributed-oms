@@ -10,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -17,7 +19,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
@@ -27,6 +28,12 @@ class InventoryServiceTest {
 
     @Mock
     private InventoryReservationRepository reservationRepository;
+
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
     private InventoryService inventoryService;
@@ -40,6 +47,10 @@ class InventoryServiceTest {
         productId = "product-123";
         orderId = UUID.randomUUID();
         quantity = 5;
+
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(valueOperations.setIfAbsent(anyString(), anyString(), any(java.time.Duration.class))).thenReturn(true);
+        lenient().when(valueOperations.get(anyString())).thenReturn(orderId.toString());
     }
 
     @Test
